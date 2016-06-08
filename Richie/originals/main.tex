@@ -1,0 +1,1026 @@
+\documentclass[10pt,a4paper]{extarticle}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage{f1000_styles}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{subcaption}
+
+\newcommand{\code}[1]{{\small\texttt{#1}}}
+\newcommand{\pkg}[1]{\textit{#1}}
+\newcommand{\Biocpkg}[1]{\textit{#1}}
+\newcommand{\Rclass}[1]{{\small\texttt{#1}}}
+
+% Allowing the large floats to have some text in those pages.
+\renewcommand{\topfraction}{0.8}
+\renewcommand{\floatpagefraction}{0.75}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+\pagestyle{fancy}
+
+\title{RNA-seq analysis is easy as 1-2-3 with limma, Glimma and edgeR}
+
+\author[1,2]{Charity W. Law}
+\author[3]{Monther Alhamdoosh}
+\author[1]{Shian Su}
+\author[1,4,*]{Gordon K. Smyth}
+\author[1,2,4,*]{Matthew E. Ritchie}
+\affil[1]{The Walter and Eliza Hall Institute of Medical Research, 1G Royal Parade, 3052 Parkville, Australia.}
+\affil[2]{Department of Medical Biology, The University of Melbourne, 3010 Parkville, Australia.}
+\affil[3]{CSL Limited, Bio21 Institute, 30 Flemington Road, Parkville, Victoria 3010, Australia.}
+\affil[4]{School of Mathematics and Statistics, The University of Melbourne, 3010 Parkville, Australia.}
+\affil[*]{Correspondence: smyth@wehi.edu.au, mritchie@wehi.edu.au}
+
+
+\maketitle
+\thispagestyle{fancy}
+
+
+\begin{abstract}
+The ability to easily and efficiently analyse RNA-sequencing data is a key strength of the Bioconductor project.
+Starting with counts summarised at the gene-level, a typical analysis involves pre-processing, exploratory data analysis, differential expression testing and pathway analysis with the results obtained informing future experiments and validation studies. 
+In this workflow article, we analyse RNA-sequencing data from the mouse mammary gland, demonstrating use of the popular \textbf{edgeR} package to import, organise, filter and normalise the data, followed by the \textbf{limma} package with its {\it voom} method, linear modelling and empirical Bayes moderation to assess differential expression and perform gene set testing. This pipeline is further enhanced by the \textbf{Glimma} package which enables interactive exploration of the results so that individual samples and genes can be examined by the user.
+The complete analysis offered by these three packages highlights the ease with which researchers can turn the raw counts from an RNA-sequencing experiment into biological insights using Bioconductor.
+\end{abstract}
+
+\clearpage
+
+\section*{Introduction}
+
+RNA-sequencing (RNA-seq) has become the primary technology used for gene expression profiling, with the genome-wide detection of differentially expressed genes between two or more conditions of interest one of the most commonly asked questions by researchers. The \textbf{edgeR} \cite{Robinson:Bioinformatics:2010} and \textbf{limma} packages \cite{Ritchie:NAR:2015} available from the Bioconductor project \cite{Huber:NatureMethods:2015} offer a well-developed suite of statistical methods for dealing with this question for RNA-seq data.
+In this article, we describe an \textbf{edgeR} - \textbf{limma} workflow for analysing RNA-seq data that takes gene-level counts as its input, and moves through pre-processing and exploratory data analysis before obtaining lists of differentially expressed (DE) genes and gene signatures. This analysis is enhanced through the use of interactive graphics from the \textbf{Glimma} package \cite{Glimma:2016}, that allows for a more detailed exploration of the data at both the sample and gene-level than is possible using static \textsf{R} plots.\\
+
+The experiment analysed in this workflow is from Sheridan {\it et al.} (2015) \cite{Sheridan:BMCCancer:2015} and consists of three cell populations (basal, luminal progenitor (LP) and mature luminal (ML)) sorted from the mammary glands of female virgin mice, each profiled in triplicate. RNA samples were sequenced across three batches on an Illumina HiSeq 2000 to obtain 100 base-pair single-end reads. 
+The analysis outlined in this article assumes that reads obtained from an RNA-seq experiment have been aligned to an appropriate reference genome and summarised into counts associated with gene-specific regions. In this instance, reads were aligned to the mouse reference genome (mm10) using the \textsf{R} based pipeline available in the \textbf{Rsubread} package (specifically the \texttt{align} function \cite{Liao:NAR:2013} followed by \texttt{featureCounts} \cite{Liao:Bioinformatics:2014} for gene-level summarisation based on the in-built {\it mm10} RefSeq-based annotation).  
+Count data for these samples can be downloaded from the Gene Expression Omnibus (GEO) \url{http://www.ncbi.nlm.nih.gov/geo/} using GEO Series accession number GSE63310. Further information on experimental design and sample preparation is also available from GEO under this accession number.
+
+
+
+\section*{Data packaging}
+
+\subsection*{Reading in count-data}
+
+To get started with this analysis, download the file \texttt{GSE63310\_RAW.tar} available online from\\ \url{http://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63310&format=file}, and extract the relevant files from this archive. 
+Each of these text files contains the raw gene-level counts for a given sample. Note that our analysis only includes the basal, LP and ML samples from this experiment (see associated file names below). 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{files} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"GSM1545535_10_6_5_11.txt"}\hlstd{,} \hlstr{"GSM1545536_9_6_5_11.txt"}\hlstd{,}
+   \hlstr{"GSM1545538_purep53.txt"}\hlstd{,} \hlstr{"GSM1545539_JMS8-2.txt"}\hlstd{,}
+   \hlstr{"GSM1545540_JMS8-3.txt"}\hlstd{,} \hlstr{"GSM1545541_JMS8-4.txt"}\hlstd{,}
+   \hlstr{"GSM1545542_JMS8-5.txt"}\hlstd{,} \hlstr{"GSM1545544_JMS9-P7c.txt"}\hlstd{,}
+   \hlstr{"GSM1545545_JMS9-P8c.txt"}\hlstd{)}
+\hlkwd{read.delim}\hlstd{(files[}\hlnum{1}\hlstd{],} \hlkwc{nrow}\hlstd{=}\hlnum{5}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+##    EntrezID GeneLength Count
+## 1    497097       3634     1
+## 2 100503874       3259     0
+## 3 100038431       1634     0
+## 4     19888       9747     0
+## 5     20671       3130     1
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Whilst each of the nine text files can be read into \textsf{R} separately and combined into a matrix of counts, \textbf{edgeR} offers a convenient way to do this in one step using the \texttt{readDGE} function. The resulting DGEList-object contains a matrix of counts with 27,179 rows associated with unique Entrez gene identifiers (IDs) and nine columns associated with the individual samples in the experiment.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(limma)}
+\hlkwd{library}\hlstd{(edgeR)}
+\hlstd{x} \hlkwb{<-} \hlkwd{readDGE}\hlstd{(files,} \hlkwc{columns}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlnum{3}\hlstd{))}
+\hlkwd{class}\hlstd{(x)}
+\end{alltt}
+\begin{verbatim}
+## [1] "DGEList"
+## attr(,"package")
+## [1] "edgeR"
+\end{verbatim}
+\begin{alltt}
+\hlkwd{dim}\hlstd{(x)}
+\end{alltt}
+\begin{verbatim}
+## [1] 27179     9
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+If the counts from all samples were stored in a single file, the data can be read into \textsf{R} and then converted into a DGEList-object using the \texttt{DGEList} function.
+
+\subsection*{Organising sample information}
+For downstream analysis, sample-level information related to the experimental design needs to be associated with the columns of the counts matrix. This should include experimental variables, both biological and technical, that could have an effect on expression levels. Examples include cell type (basal, LP and ML in this experiment), genotype (wild-type, knock-out), phenotype (disease status, sex, age), sample treatment (drug, control) and batch information (date experiment was performed if samples were collected and analysed at distinct time points) to name just a few.\\
+
+Our DGEList-object contains a \texttt{samples} data frame that stores both cell type (or \texttt{group}) and batch (sequencing \texttt{lane}) information, each of which consists of three distinct levels. Note that within \texttt{x\$samples}, library sizes are automatically calculated for each sample and normalisation factors are set to 1.
+For simplicity, we remove the GEO sample IDs (GSM*) from the column names of our DGEList-object \texttt{x}.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{samplenames} \hlkwb{<-} \hlkwd{substring}\hlstd{(}\hlkwd{colnames}\hlstd{(x),} \hlnum{12}\hlstd{,} \hlkwd{nchar}\hlstd{(}\hlkwd{colnames}\hlstd{(x)))}
+\hlstd{samplenames}
+\end{alltt}
+\begin{verbatim}
+## [1] "10_6_5_11" "9_6_5_11"  "purep53"   "JMS8-2"    "JMS8-3"    "JMS8-4"    "JMS8-5"   
+## [8] "JMS9-P7c"  "JMS9-P8c"
+\end{verbatim}
+\begin{alltt}
+\hlkwd{colnames}\hlstd{(x)} \hlkwb{<-} \hlstd{samplenames}
+\hlstd{group} \hlkwb{<-} \hlkwd{as.factor}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"LP"}\hlstd{,} \hlstr{"ML"}\hlstd{,} \hlstr{"Basal"}\hlstd{,} \hlstr{"Basal"}\hlstd{,} \hlstr{"ML"}\hlstd{,} \hlstr{"LP"}\hlstd{,}
+                     \hlstr{"Basal"}\hlstd{,} \hlstr{"ML"}\hlstd{,} \hlstr{"LP"}\hlstd{))}
+\hlstd{x}\hlopt{$}\hlstd{samples}\hlopt{$}\hlstd{group} \hlkwb{<-} \hlstd{group}
+\hlstd{lane} \hlkwb{<-} \hlkwd{as.factor}\hlstd{(}\hlkwd{rep}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"L004"}\hlstd{,}\hlstr{"L006"}\hlstd{,}\hlstr{"L008"}\hlstd{),} \hlkwd{c}\hlstd{(}\hlnum{3}\hlstd{,}\hlnum{4}\hlstd{,}\hlnum{2}\hlstd{)))}
+\hlstd{x}\hlopt{$}\hlstd{samples}\hlopt{$}\hlstd{lane} \hlkwb{<-} \hlstd{lane}
+\hlstd{x}\hlopt{$}\hlstd{samples}
+\end{alltt}
+\begin{verbatim}
+##                              files group lib.size norm.factors lane
+## 10_6_5_11 GSM1545535_10_6_5_11.txt    LP 32863052            1 L004
+## 9_6_5_11   GSM1545536_9_6_5_11.txt    ML 35335491            1 L004
+## purep53     GSM1545538_purep53.txt Basal 57160817            1 L004
+## JMS8-2       GSM1545539_JMS8-2.txt Basal 51368625            1 L006
+## JMS8-3       GSM1545540_JMS8-3.txt    ML 75795034            1 L006
+## JMS8-4       GSM1545541_JMS8-4.txt    LP 60517657            1 L006
+## JMS8-5       GSM1545542_JMS8-5.txt Basal 55086324            1 L006
+## JMS9-P7c   GSM1545544_JMS9-P7c.txt    ML 21311068            1 L008
+## JMS9-P8c   GSM1545545_JMS9-P8c.txt    LP 19958838            1 L008
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\subsection*{Organising gene annotations}
+
+A second data frame named \texttt{genes} in the DGEList-object is used to store gene-level information associated with rows of the counts matrix.
+This information can be retrieved using organism specific packages such as \textbf{Mus.musculus} \cite{orgMm:2016} for mouse (or \textbf{Homo.sapiens} \cite{orgHs:2016} for human) or the \textbf{biomaRt} package \cite{Durinck:Bioinf:2005,Durinck:NatureProtocols:2009} which interfaces the Ensembl genome databases in order to perform gene annotation.
+The type of information that can be retrieved includes gene symbols, gene names, chromosome names and locations, Entrez gene IDs, Refseq gene IDs and Ensembl gene IDs to name just a few. \textbf{biomaRt} primarily works off Ensembl gene IDs, whereas \textbf{Mus.musculus} packages information from various sources and allows users to choose between many different gene IDs as the key. 
+The Entrez gene IDs available in our dataset were annotated using the \textbf{Mus.musculus} package to retrieve associated gene symbols and chromosome information. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(Mus.musculus)}
+\hlstd{geneid} \hlkwb{<-} \hlkwd{rownames}\hlstd{(x)}
+\hlstd{genes} \hlkwb{<-} \hlkwd{select}\hlstd{(Mus.musculus,} \hlkwc{keys}\hlstd{=geneid,} \hlkwc{columns}\hlstd{=}\hlkwd{c}\hlstd{(}\hlstr{"SYMBOL"}\hlstd{,} \hlstr{"TXCHROM"}\hlstd{),}
+                \hlkwc{keytype}\hlstd{=}\hlstr{"ENTREZID"}\hlstd{)}
+\hlkwd{head}\hlstd{(genes)}
+\end{alltt}
+\begin{verbatim}
+##    ENTREZID  SYMBOL TXCHROM
+## 1    497097    Xkr4    chr1
+## 2 100503874 Gm19938    <NA>
+## 3 100038431 Gm10568    <NA>
+## 4     19888     Rp1    chr1
+## 5     20671   Sox17    chr1
+## 6     27395  Mrpl15    chr1
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+As with any gene ID, Entrez gene IDs may not map one-to-one to the gene information of interest. It is important to check for duplicated gene IDs and resolve them to ensure the gene order is consistent between our annotation and the counts in the DGEList-object. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{dup} \hlkwb{<-} \hlstd{genes}\hlopt{$}\hlstd{ENTREZID[}\hlkwd{duplicated}\hlstd{(genes}\hlopt{$}\hlstd{ENTREZID)]}
+\hlstd{genes[genes}\hlopt{$}\hlstd{ENTREZID} \hlopt{%in%} \hlstd{dup,][}\hlnum{1}\hlopt{:}\hlnum{10}\hlstd{,]}
+\end{alltt}
+\begin{verbatim}
+##        ENTREZID    SYMBOL TXCHROM
+## 5360  100316809 Mir1906-1   chr12
+## 5361  100316809 Mir1906-1    chrX
+## 7128     218963    Gm1821   chr11
+## 7129     218963    Gm1821   chr14
+## 9564      12228      Btg3   chr16
+## 9565      12228      Btg3   chr17
+## 11351    433182     Eno1b    chr4
+## 11352    433182     Eno1b   chr18
+## 11544 100217457  Snord58b   chr14
+## 11545 100217457  Snord58b   chr18
+\end{verbatim}
+\begin{alltt}
+\hlstd{mat} \hlkwb{<-} \hlkwd{match}\hlstd{(geneid, genes}\hlopt{$}\hlstd{ENTREZID)}
+\hlstd{genes} \hlkwb{<-} \hlstd{genes[mat,]}
+\hlstd{genes[genes}\hlopt{$}\hlstd{ENTREZID} \hlopt{%in%} \hlstd{dup,][}\hlnum{1}\hlopt{:}\hlnum{5}\hlstd{,]}
+\end{alltt}
+\begin{verbatim}
+##        ENTREZID    SYMBOL TXCHROM
+## 5360  100316809 Mir1906-1   chr12
+## 7128     218963    Gm1821   chr11
+## 9564      12228      Btg3   chr16
+## 11351    433182     Eno1b    chr4
+## 11544 100217457  Snord58b   chr14
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+The \texttt{match}-ing process above takes care of the duplication by keeping the first occurrence of each gene ID. Now that non-unique gene IDs have been resolved, the data frame of gene annotations is added to the data object:
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{x}\hlopt{$}\hlstd{genes} \hlkwb{<-} \hlstd{genes}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+Now our data is packaged neatly in a DGEList-object containing raw count data with associated sample information and gene annotations.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{x}
+\end{alltt}
+\begin{verbatim}
+## An object of class "DGEList"
+## $samples
+##                              files group lib.size norm.factors lane
+## 10_6_5_11 GSM1545535_10_6_5_11.txt    LP 32863052            1 L004
+## 9_6_5_11   GSM1545536_9_6_5_11.txt    ML 35335491            1 L004
+## purep53     GSM1545538_purep53.txt Basal 57160817            1 L004
+## JMS8-2       GSM1545539_JMS8-2.txt Basal 51368625            1 L006
+## JMS8-3       GSM1545540_JMS8-3.txt    ML 75795034            1 L006
+## JMS8-4       GSM1545541_JMS8-4.txt    LP 60517657            1 L006
+## JMS8-5       GSM1545542_JMS8-5.txt Basal 55086324            1 L006
+## JMS9-P7c   GSM1545544_JMS9-P7c.txt    ML 21311068            1 L008
+## JMS9-P8c   GSM1545545_JMS9-P8c.txt    LP 19958838            1 L008
+## 
+## $counts
+##            Samples
+## Tags        10_6_5_11 9_6_5_11 purep53 JMS8-2 JMS8-3 JMS8-4 JMS8-5 JMS9-P7c JMS9-P8c
+##   497097            1        2     342    526      3      3    535        2        0
+##   100503874         0        0       5      6      0      0      5        0        0
+##   100038431         0        0       0      0      0      0      1        0        0
+##   19888             0        1       0      0     17      2      0        1        0
+##   20671             1        1      76     40     33     14     98       18        8
+## 27174 more rows ...
+## 
+## $genes
+##    ENTREZID  SYMBOL TXCHROM
+## 1    497097    Xkr4    chr1
+## 2 100503874 Gm19938    <NA>
+## 3 100038431 Gm10568    <NA>
+## 4     19888     Rp1    chr1
+## 5     20671   Sox17    chr1
+## 27174 more rows ...
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+
+\section*{Data pre-processing}
+
+\subsection*{Transformations from the raw-scale}
+For differential expression and related analyses, gene expression is rarely considered at the level of raw counts since libraries sequenced at a greater depth will result in higher counts. Rather, it is common practice to transform raw counts onto a scale that accounts for such library size differences. Popular transformations include counts per million (CPM), log$_2$-counts per million (log-CPM), reads per kilobase of transcript per million (RPKM), and fragments per kilobase of transcript per million (FPKM).\\
+
+In our analyses, CPM and log-CPM transformations are used regularly although they do not account for feature length differences which RPKM and FPKM values do. Whilst RPKM and FPKM values can just as well be used, CPM and log-CPM values can be calculated using a counts matrix alone and
+will suffice for the type of comparisons we are interested in. Differential expression analyses look at gene expression differences between conditions, rather than comparing expression across multiple genes or drawing conclusions on absolute levels of expression. In other words, gene lengths remain constant for comparisons of interest and any observed differences are a result of changes in condition rather than changes in gene length. \\ 
+
+Here raw counts are converted to CPM and log-CPM values using the \texttt{cpm} function in \textbf{edgeR}, where log-transformations use a prior count of 0.25 to avoid taking the log of zero. 
+RPKM values are just as easily calculated as CPM values using the \texttt{rpkm} function in \textbf{edgeR} if gene lengths are available. % Gene lengths can be automatically extracted from \texttt{x\$genes} if its column name contains the word "length'' in any capitalisation. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{cpm} \hlkwb{<-} \hlkwd{cpm}\hlstd{(x)}
+\hlstd{lcpm} \hlkwb{<-} \hlkwd{cpm}\hlstd{(x,} \hlkwc{log}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+\subsection*{Removing genes that are not expressed}
+All datasets will include a mix of genes that are expressed and those that are not expressed. Whilst it is of interest to examine genes that are expressed in one condition but not in another, some genes are unexpressed throughout all samples. In fact, 19\% of genes in this dataset have zero counts across all nine samples.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{table}\hlstd{(}\hlkwd{rowSums}\hlstd{(x}\hlopt{$}\hlstd{counts}\hlopt{==}\hlnum{0}\hlstd{)}\hlopt{==}\hlnum{9}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## 
+## FALSE  TRUE 
+## 22026  5153
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Genes that are not expressed at a biologically meaningful level in any condition should be discarded to reduce the subset of genes to those that are of interest, and to reduce the number of tests carried out downstream when looking at differential expression.
+Upon examination of log-CPM values, it can be seen that a large proportion of genes within each sample is unexpressed or lowly-expressed ({\color{red}{Figure \ref{fig:filter}A}}). Using a nominal CPM value of 1 (which is equivalent to a log-CPM value of 0) genes are deemed to be expressed if its expression is above this threshold, and unexpressed otherwise. Genes must be expressed in at least one group (or roughly any three samples across the entire experiment) to be kept for downstream analysis. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{keep.exprs} \hlkwb{<-} \hlkwd{rowSums}\hlstd{(cpm}\hlopt{>}\hlnum{1}\hlstd{)}\hlopt{>=}\hlnum{3}
+\hlstd{x} \hlkwb{<-} \hlstd{x[keep.exprs,,} \hlkwc{keep.lib.sizes}\hlstd{=}\hlnum{FALSE}\hlstd{]}
+\hlkwd{dim}\hlstd{(x)}
+\end{alltt}
+\begin{verbatim}
+## [1] 14165     9
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Using this criterion, the number of genes is reduced to approximately half the number that we started with (14,165 genes, {\color{red}{Figure \ref{fig:filter}B}}). Note that subsetting the entire DGEList-object removes both the counts as well as the associated gene information. Code to produce {\color{red}{Figure \ref{fig:filter}}} is given below.
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{filtering.pdf}
+\caption{\label{fig:filter}The density of log-CPM values for raw pre-filtered data (A.) and post-filtered data (B.) are shown for each sample. Dotted vertical lines mark the log-CPM of zero threshold (equivalent to a CPM value of 1) used in the filtering step.}
+\end{figure}
+
+%The distribution of expression levels within each of the samples are plotted below, where the unfiltered data show strong presence of unexpressed genes.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(RColorBrewer)}
+\hlstd{nsamples} \hlkwb{<-} \hlkwd{ncol}\hlstd{(x)}
+\hlstd{col} \hlkwb{<-} \hlkwd{brewer.pal}\hlstd{(nsamples,} \hlstr{"Paired"}\hlstd{)}
+\hlkwd{par}\hlstd{(}\hlkwc{mfrow}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlnum{2}\hlstd{))}
+\hlkwd{plot}\hlstd{(}\hlkwd{density}\hlstd{(lcpm[,}\hlnum{1}\hlstd{]),} \hlkwc{col}\hlstd{=col[}\hlnum{1}\hlstd{],} \hlkwc{lwd}\hlstd{=}\hlnum{2}\hlstd{,} \hlkwc{ylim}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0.21}\hlstd{),} \hlkwc{las}\hlstd{=}\hlnum{2}\hlstd{,}
+     \hlkwc{main}\hlstd{=}\hlstr{""}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{""}\hlstd{)}
+\hlkwd{title}\hlstd{(}\hlkwc{main}\hlstd{=}\hlstr{"A. Raw data"}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{"Log-cpm"}\hlstd{)}
+\hlkwd{abline}\hlstd{(}\hlkwc{v}\hlstd{=}\hlnum{0}\hlstd{,} \hlkwc{lty}\hlstd{=}\hlnum{3}\hlstd{)}
+\hlkwa{for} \hlstd{(i} \hlkwa{in} \hlnum{2}\hlopt{:}\hlstd{nsamples)\{}
+ \hlstd{den} \hlkwb{<-} \hlkwd{density}\hlstd{(lcpm[,i])}
+ \hlkwd{lines}\hlstd{(den}\hlopt{$}\hlstd{x, den}\hlopt{$}\hlstd{y,} \hlkwc{col}\hlstd{=col[i],} \hlkwc{lwd}\hlstd{=}\hlnum{2}\hlstd{)}
+\hlstd{\}}
+\hlkwd{legend}\hlstd{(}\hlstr{"topright"}\hlstd{, samplenames,} \hlkwc{text.col}\hlstd{=col,} \hlkwc{bty}\hlstd{=}\hlstr{"n"}\hlstd{)}
+\hlstd{lcpm} \hlkwb{<-} \hlkwd{cpm}\hlstd{(x,} \hlkwc{log}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{plot}\hlstd{(}\hlkwd{density}\hlstd{(lcpm[,}\hlnum{1}\hlstd{]),} \hlkwc{col}\hlstd{=col[}\hlnum{1}\hlstd{],} \hlkwc{lwd}\hlstd{=}\hlnum{2}\hlstd{,} \hlkwc{ylim}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0.21}\hlstd{),} \hlkwc{las}\hlstd{=}\hlnum{2}\hlstd{,}
+     \hlkwc{main}\hlstd{=}\hlstr{""}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{""}\hlstd{)}
+\hlkwd{title}\hlstd{(}\hlkwc{main}\hlstd{=}\hlstr{"B. Filtered data"}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{"Log-cpm"}\hlstd{)}
+\hlkwd{abline}\hlstd{(}\hlkwc{v}\hlstd{=}\hlnum{0}\hlstd{,} \hlkwc{lty}\hlstd{=}\hlnum{3}\hlstd{)}
+\hlkwa{for} \hlstd{(i} \hlkwa{in} \hlnum{2}\hlopt{:}\hlstd{nsamples)\{}
+   \hlstd{den} \hlkwb{<-} \hlkwd{density}\hlstd{(lcpm[,i])}
+   \hlkwd{lines}\hlstd{(den}\hlopt{$}\hlstd{x, den}\hlopt{$}\hlstd{y,} \hlkwc{col}\hlstd{=col[i],} \hlkwc{lwd}\hlstd{=}\hlnum{2}\hlstd{)}
+\hlstd{\}}
+\hlkwd{legend}\hlstd{(}\hlstr{"topright"}\hlstd{, samplenames,} \hlkwc{text.col}\hlstd{=col,} \hlkwc{bty}\hlstd{=}\hlstr{"n"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+\subsection*{Normalising gene expression distributions}
+During the sample preparation or sequencing process, external factors that are not of biological interest can affect the expression of individual samples. For example, samples processed in the first batch of an experiment can have higher expression overall when compared to samples processed in a second batch. It is assumed that all samples should have a similar range and distribution of expression values. Normalisation is required to ensure that the expression distributions of each sample are similar across the entire experiment. \\
+
+Any plot showing the per sample expression distributions, such as a density or boxplot, is useful in determining whether any samples are dissimilar to others. Distributions of log-CPM values are similar throughout all samples within this dataset ({\color{red}{Figure \ref{fig:filter}B}}).\\   
+
+Nonetheless, normalisation by the method of trimmed mean of M-values (TMM) \cite{RobinsonOshlack:GenomeBiol:2010} is performed using the \newline \texttt{calcNormFactors} function in \textbf{edgeR}. The normalisation factors calculated here are used as a scaling factor for the library sizes. When working with DGEList-objects, these normalisation factors are automatically stored in \newline \texttt{x\$samples\$norm.factors}. For this dataset the effect of TMM-normalisation is mild, as evident in the magnitude of the scaling factors, which are all relatively close to 1. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{x} \hlkwb{<-} \hlkwd{calcNormFactors}\hlstd{(x,} \hlkwc{method} \hlstd{=} \hlstr{"TMM"}\hlstd{)}
+\hlstd{x}\hlopt{$}\hlstd{samples}\hlopt{$}\hlstd{norm.factors}
+\end{alltt}
+\begin{verbatim}
+## [1] 0.896 1.035 1.044 1.041 1.032 0.922 0.984 1.083 0.979
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+To give a better visual representation of the effects of normalisation, the data was duplicated then adjusted so that the counts of the first sample are reduced to 5\% of their original values, and in the second sample they are inflated to be 5-times larger. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{x2} \hlkwb{<-} \hlstd{x}
+\hlstd{x2}\hlopt{$}\hlstd{samples}\hlopt{$}\hlstd{norm.factors} \hlkwb{<-} \hlnum{1}
+\hlstd{x2}\hlopt{$}\hlstd{counts[,}\hlnum{1}\hlstd{]} \hlkwb{<-} \hlkwd{ceiling}\hlstd{(x2}\hlopt{$}\hlstd{counts[,}\hlnum{1}\hlstd{]}\hlopt{*}\hlnum{0.05}\hlstd{)}
+\hlstd{x2}\hlopt{$}\hlstd{counts[,}\hlnum{2}\hlstd{]} \hlkwb{<-} \hlstd{x2}\hlopt{$}\hlstd{counts[,}\hlnum{2}\hlstd{]}\hlopt{*}\hlnum{5}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+{\color{red}{Figure \ref{fig:normalisation}}} shows the expression distribution of samples for unnormalised and normalised data, where distributions are noticeably different pre-normalisation and are similar post-normalisation. Here the first sample has a small TMM scaling factor of 0.05, whereas the second sample has a large scaling factor of 6.13 -- neither values are close to 1.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{par}\hlstd{(}\hlkwc{mfrow}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlnum{2}\hlstd{))}
+\hlstd{lcpm} \hlkwb{<-} \hlkwd{cpm}\hlstd{(x2,} \hlkwc{log}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{boxplot}\hlstd{(lcpm,} \hlkwc{las}\hlstd{=}\hlnum{2}\hlstd{,} \hlkwc{col}\hlstd{=col,} \hlkwc{main}\hlstd{=}\hlstr{""}\hlstd{)}
+\hlkwd{title}\hlstd{(}\hlkwc{main}\hlstd{=}\hlstr{"A. Example: Unnormalised data"}\hlstd{,}\hlkwc{ylab}\hlstd{=}\hlstr{"Log-cpm"}\hlstd{)}
+\hlstd{x2} \hlkwb{<-} \hlkwd{calcNormFactors}\hlstd{(x2)}
+\hlstd{x2}\hlopt{$}\hlstd{samples}\hlopt{$}\hlstd{norm.factors}
+\end{alltt}
+\begin{verbatim}
+## [1] 0.0547 6.1306 1.2293 1.1705 1.2149 1.0562 1.1459 1.2613 1.1170
+\end{verbatim}
+\begin{alltt}
+\hlstd{lcpm} \hlkwb{<-} \hlkwd{cpm}\hlstd{(x2,} \hlkwc{log}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{boxplot}\hlstd{(lcpm,} \hlkwc{las}\hlstd{=}\hlnum{2}\hlstd{,} \hlkwc{col}\hlstd{=col,} \hlkwc{main}\hlstd{=}\hlstr{""}\hlstd{)}
+\hlkwd{title}\hlstd{(}\hlkwc{main}\hlstd{=}\hlstr{"B. Example: Normalised data"}\hlstd{,}\hlkwc{ylab}\hlstd{=}\hlstr{"Log-cpm"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{normalisation.pdf}
+\caption{\label{fig:normalisation}Example data: Boxplots of log-CPM values showing expression distributions for unnormalised data (A) and normalised data (B) for each sample in the modified dataset where the counts in samples 1 and 2 have been scaled to 5\% and 500\% of their original values respectively.}
+\end{figure}
+
+
+\subsection*{Unsupervised clustering of samples}
+In our opinion, one of the most important exploratory plots to examine for gene expression analyses is the multi-dimensional scaling (MDS) plot, or similar. The plot shows similarities and dissimilarities between samples in an unsupervised manner so that one can have an idea of the extent to which differential expression can be detected before carrying out formal tests. Ideally, samples would cluster well within the primary condition of interest, and any sample straying far from its group could be identified and followed up for sources of error or extra variation. If present, technical replicates should lie very close to one another. \\
+
+Such a plot can be made in \textbf{limma} using the \texttt{plotMDS} function. The first dimension represents the leading-fold-change that best separates samples and explains the largest proportion of variation in the data, with subsequent dimensions having a smaller effect and being orthogonal to the ones before it. When experimental design involves multiple factors, it is recommended that each factor is examined over several dimensions. If samples cluster by a given factor in any of these dimensions, it suggests that the factor contributes to expression differences and is worth including in the linear modelling. On the other hand, factors that show little or no effect may be left out of downstream analysis.\\
+
+In this dataset, samples can be seen to cluster well within experimental groups over dimension 1 and 2, and then separate by sequencing lane (sample batch) over dimension 3 ({\color{red}{Figure \ref{fig:MDS}}}). 
+Keeping in mind that the first dimension explains the largest proportion of variation in the data, notice that the range of values over the dimensions become smaller as we move to higher dimensions.
+Whilst all samples cluster by groups, the largest transcriptional difference is observed between basal and LP, and basal and ML over dimension 1. 
+For this reason, it is expected that pairwise comparisons between cell populations will result in a greater number of DE genes for comparisons involving basal samples, and relatively small numbers of DE genes when comparing ML to LP. In other datasets, samples that do not cluster by their groups of interest may also show little or no evidence of differential expression in the downstream analysis.\\ 
+
+To create the MDS plots, different colour groupings are assigned to factors of interest. Dimensions 1 and 2 are examined using the color grouping defined by cell types. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{lcpm} \hlkwb{<-} \hlkwd{cpm}\hlstd{(x,} \hlkwc{log}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{par}\hlstd{(}\hlkwc{mfrow}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlnum{2}\hlstd{))}
+\hlstd{col.group} \hlkwb{<-} \hlstd{group}
+\hlkwd{levels}\hlstd{(col.group)} \hlkwb{<-}  \hlkwd{brewer.pal}\hlstd{(}\hlkwd{nlevels}\hlstd{(col.group),} \hlstr{"Set1"}\hlstd{)}
+\hlstd{col.group} \hlkwb{<-} \hlkwd{as.character}\hlstd{(col.group)}
+\hlstd{col.lane} \hlkwb{<-} \hlstd{lane}
+\hlkwd{levels}\hlstd{(col.lane)} \hlkwb{<-}  \hlkwd{brewer.pal}\hlstd{(}\hlkwd{nlevels}\hlstd{(col.lane),} \hlstr{"Set2"}\hlstd{)}
+\hlstd{col.lane} \hlkwb{<-} \hlkwd{as.character}\hlstd{(col.lane)}
+\hlkwd{plotMDS}\hlstd{(lcpm,} \hlkwc{labels}\hlstd{=group,} \hlkwc{col}\hlstd{=col.group)}
+\hlkwd{title}\hlstd{(}\hlkwc{main}\hlstd{=}\hlstr{"A. Sample groups"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+Dimensions 3 and 4 are examined using the colour grouping defined by sequencing lanes (batch).
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{plotMDS}\hlstd{(lcpm,} \hlkwc{labels}\hlstd{=lane,} \hlkwc{col}\hlstd{=col.lane,} \hlkwc{dim}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{3}\hlstd{,}\hlnum{4}\hlstd{))}
+\hlkwd{title}\hlstd{(}\hlkwc{main}\hlstd{=}\hlstr{"B. Sequencing lanes"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{mds.pdf}
+\caption{\label{fig:MDS}MDS plots of log-CPM values over dimensions 1 and 2 with samples coloured and labeled by sample groups (A) and over dimensions 3 and 4 with samples coloured and labeled by sequencing lane (B). Distances on the plot correspond to the leading fold-change, which is the average (root-mean-square) $\log_2$-fold-change for the 500 genes most divergent between each pair of samples by default.}
+\end{figure}
+
+Alternatively, the \textbf{Glimma} package offers the convenience of an interactive MDS plot where multiple dimensions can be explored. The \texttt{glMDSPlot} function generates an html page (that is opened in a browser if \texttt{launch=TRUE}) with an MDS plot in the left panel and a barplot showing the proportion of variation explained by each dimension in the right panel. Clicking on the bars of the bar plot changes the pair of dimensions plotted in the MDS plot, and hovering over the individual points reveals the sample label. The colour scheme can be changed as well to highlight cell population or sequencing lane (batch). An interactive MDS plot of this dataset can be found at\\ \url{http://bioinf.wehi.edu.au/folders/limmaWorkflow/glimma-plots/MDS-Plot.html}. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(Glimma)}
+\hlkwd{glMDSPlot}\hlstd{(lcpm,} \hlkwc{labels}\hlstd{=}\hlkwd{paste}\hlstd{(group, lane,} \hlkwc{sep}\hlstd{=}\hlstr{"_"}\hlstd{),}
+          \hlkwc{groups}\hlstd{=x}\hlopt{$}\hlstd{samples[,}\hlkwd{c}\hlstd{(}\hlnum{2}\hlstd{,}\hlnum{5}\hlstd{)],} \hlkwc{launch}\hlstd{=}\hlnum{FALSE}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+\section*{Differential expression analysis}
+
+\subsection*{Creating a design matrix and contrasts}
+
+In this study, it is of interest to see which genes are expressed at different levels between the three cell populations profiled. In our analysis, linear models are fitted to the data with the assumption that the underlying data is normally distributed. To get started, a design matrix is set up with both the cell population and sequencing lane (batch) information.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{design} \hlkwb{<-} \hlkwd{model.matrix}\hlstd{(}\hlopt{~}\hlnum{0}\hlopt{+}\hlstd{group}\hlopt{+}\hlstd{lane)}
+\hlkwd{colnames}\hlstd{(design)} \hlkwb{<-} \hlkwd{gsub}\hlstd{(}\hlstr{"group"}\hlstd{,} \hlstr{""}\hlstd{,} \hlkwd{colnames}\hlstd{(design))}
+\hlstd{design}
+\end{alltt}
+\begin{verbatim}
+##   Basal LP ML laneL006 laneL008
+## 1     0  1  0        0        0
+## 2     0  0  1        0        0
+## 3     1  0  0        0        0
+## 4     1  0  0        1        0
+## 5     0  0  1        1        0
+## 6     0  1  0        1        0
+## 7     1  0  0        1        0
+## 8     0  0  1        0        1
+## 9     0  1  0        0        1
+## attr(,"assign")
+## [1] 1 1 1 2 2
+## attr(,"contrasts")
+## attr(,"contrasts")$group
+## [1] "contr.treatment"
+## 
+## attr(,"contrasts")$lane
+## [1] "contr.treatment"
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+For a given experiment, there are usually several equivalent ways to set up an appropriate design matrix. 
+For example, \texttt{\char`\~0+group+lane} removes the intercept from the first factor, \texttt{group}, but an intercept remains in the second factor \texttt{lane}. 
+Alternatively, \texttt{\char`\~group+lane} could be used to keep the intercepts in both \texttt{group} and \texttt{lane}. 
+Understanding how to interpret the coefficients estimated in a given model is key here. 
+We choose the first model for our analysis, as setting up model contrasts is more straight forward in the absence of an intercept for \texttt{group}. Contrasts for pairwise comparisons between cell populations are set up in \textbf{limma} using the \texttt{makeContrasts} function. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{contr.matrix} \hlkwb{<-} \hlkwd{makeContrasts}\hlstd{(}
+   \hlkwc{BasalvsLP} \hlstd{= Basal}\hlopt{-}\hlstd{LP,}
+   \hlkwc{BasalvsML} \hlstd{= Basal} \hlopt{-} \hlstd{ML,}
+   \hlkwc{LPvsML} \hlstd{= LP} \hlopt{-} \hlstd{ML,}
+   \hlkwc{levels} \hlstd{=} \hlkwd{colnames}\hlstd{(design))}
+\hlstd{contr.matrix}
+\end{alltt}
+\begin{verbatim}
+##           Contrasts
+## Levels     BasalvsLP BasalvsML LPvsML
+##   Basal            1         1      0
+##   LP              -1         0      1
+##   ML               0        -1     -1
+##   laneL006         0         0      0
+##   laneL008         0         0      0
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+A key strength of \textbf{limma}'s linear modelling approach, is the ability accommodate arbitrary experimental complexity. Simple designs, such as the one in this workflow, with cell type and batch, through to more complicated factorial designs and models with interaction terms can be handled relatively easily. Where experimental or technical effects can be modelled using a random effect, another possibility in \textbf{limma} is to estimate correlations using \texttt{duplicateCorrelation} by specifying a \texttt{block} argument for both this function and in the \texttt{lmFit} linear modelling step.
+
+
+\subsection*{Removing heteroscedascity from count data} 
+
+It has been shown that for RNA-seq count data, the variance is not independent of the mean \cite{Law:GenomeBiol:2014} -- this is true of raw counts or when transformed to log-CPM values. Methods that model counts using a Negative Binomial distribution assume a quadratic mean-variance relationship. In \textbf{limma}, linear modelling is carried out on the log-CPM values which are assumed to be normally distributed and the mean-variance relationship is accommodated using precision weights calculated by the \texttt{voom} function.\\
+
+When operating on a DGEList-object, \texttt{voom} converts raw counts to log-CPM values by automatically extracting library sizes and normalisation factors from \texttt{x} itself. For a matrix of counts, the method of normalisation can be specified within \texttt{voom} using the  \texttt{normalize.method} (by default no normalisation is performed).\\
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{meanvariance.pdf}
+\caption{\label{fig:voom}Means (x-axis) and variances (y-axis) of each gene are plotted to show the dependence between the two before \texttt{voom} is applied to the data (A) and how the trend is removed after \texttt{voom} precision weights are applied to the data (B). The plot on the left is created within the \texttt{voom} function which extracts residual variances from fitting linear models to log-CPM transformed data. Variances are then rescaled to quarter-root variances (or square-root of standard deviations) and plotted against the mean expression of each gene. The means are $\log_2$-transformed mean-counts with an offset of 0.5. The plot on the right is created using \texttt{plotSA} which plots $\log_2$ residual standard deviations against mean log-CPM values. The average $\log_2$ residual standard deviation is marked by a horizontal blue line. In both plots, each black dot represents a gene and a red curve is fitted to these points.}
+\end{figure}
+
+The mean-variance relationship of log-CPM values for this dataset is shown in {\color{red}{Figure \ref{fig:voom}A}}. Typically, the ``voom-plot" shows a decreasing trend between the means and variances resulting from a combination of technical variation in the sequencing experiment and biological variation amongst the replicate samples from different cell populations.
+Experiments with high biological variation usually result in flatter trends, where variance values plateau at high expression values. 
+Experiments with low biological variation tend to result in sharp decreasing trends.\\ 
+
+Moreover, the voom-plot provides a visual check on the level of filtering performed upstream. If filtering of lowly-expressed genes is insufficient, a drop in variance levels can be observed at the low end of the expression scale due to very small counts. If this is observed, one should return to the earlier filtering step and increase the expression threshold applied to the dataset.\\
+
+Where sample-level variation is evident from earlier inspections of the MDS plot, the \texttt{voomWithQualityWeights} function can be used to simultaneously incorporate sample-level weights together with the abundance dependent weights estimated by \texttt{voom} \cite{Liu:NAR:2015}. For an example of this, see Liu {\it et al.} (2016) \cite{Liu:GenomicsData:2016}.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{v} \hlkwb{<-} \hlkwd{voom}\hlstd{(x, design,} \hlkwc{plot}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlstd{v}
+\end{alltt}
+\begin{verbatim}
+## An object of class "EList"
+## $genes
+##    ENTREZID SYMBOL TXCHROM
+## 1    497097   Xkr4    chr1
+## 6     27395 Mrpl15    chr1
+## 7     18777 Lypla1    chr1
+## 9     21399  Tcea1    chr1
+## 10    58175  Rgs20    chr1
+## 14160 more rows ...
+## 
+## $targets
+##                              files group lib.size norm.factors lane
+## 10_6_5_11 GSM1545535_10_6_5_11.txt    LP 29409426        0.896 L004
+## 9_6_5_11   GSM1545536_9_6_5_11.txt    ML 36528591        1.035 L004
+## purep53     GSM1545538_purep53.txt Basal 59598629        1.044 L004
+## JMS8-2       GSM1545539_JMS8-2.txt Basal 53382070        1.041 L006
+## JMS8-3       GSM1545540_JMS8-3.txt    ML 78175314        1.032 L006
+## JMS8-4       GSM1545541_JMS8-4.txt    LP 55762781        0.922 L006
+## JMS8-5       GSM1545542_JMS8-5.txt Basal 54115150        0.984 L006
+## JMS9-P7c   GSM1545544_JMS9-P7c.txt    ML 23043111        1.083 L008
+## JMS9-P8c   GSM1545545_JMS9-P8c.txt    LP 19525423        0.979 L008
+## 
+## $E
+##         Samples
+## Tags     10_6_5_11 9_6_5_11 purep53 JMS8-2 JMS8-3 JMS8-4 JMS8-5 JMS9-P7c JMS9-P8c
+##   497097     -4.29    -3.87    2.52   3.30  -4.48  -3.99   3.31    -3.20    -5.29
+##   27395       3.88     4.40    4.52   4.57   4.32   3.79   3.92     4.35     4.13
+##   18777       4.71     5.56    5.40   5.17   5.63   5.08   5.08     5.76     5.15
+##   21399       4.78     4.74    5.37   5.13   4.85   4.94   5.16     5.04     4.99
+##   58175       3.94     3.29   -1.77  -1.88   2.99   3.36  -2.11     3.14     3.52
+## 14160 more rows ...
+## 
+## $weights
+##       [,1]  [,2]  [,3]  [,4]  [,5]  [,6]  [,7]  [,8]  [,9]
+## [1,]  1.18  1.18 20.53 20.98  1.77  1.22 21.13  1.18  1.18
+## [2,] 20.88 26.56 31.60 29.66 32.56 26.75 29.79 21.90 17.15
+## [3,] 28.00 33.70 34.85 34.46 35.15 33.55 34.52 31.44 25.23
+## [4,] 27.67 29.60 34.90 34.43 34.84 33.16 34.49 26.14 24.50
+## [5,] 19.74 18.66  3.18  2.63 24.19 24.01  2.65 13.15 14.35
+## 14160 more rows ...
+## 
+## $design
+##   Basal LP ML laneL006 laneL008
+## 1     0  1  0        0        0
+## 2     0  0  1        0        0
+## 3     1  0  0        0        0
+## 4     1  0  0        1        0
+## 5     0  0  1        1        0
+## 6     0  1  0        1        0
+## 7     1  0  0        1        0
+## 8     0  0  1        0        1
+## 9     0  1  0        0        1
+## attr(,"assign")
+## [1] 1 1 1 2 2
+## attr(,"contrasts")
+## attr(,"contrasts")$group
+## [1] "contr.treatment"
+## 
+## attr(,"contrasts")$lane
+## [1] "contr.treatment"
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Note that the other data frames stored within the DGEList-object that contain gene- and sample-level information, are retained in the EList-object \texttt{v} created by \texttt{voom}. The \texttt{v\$genes} data frame is equivalent to \texttt{x\$genes}, \texttt{v\$targets} is equivalent to \texttt{x\$samples}, and the expression values stored in \texttt{v\$E} is analogous to \texttt{x\$counts}, albeit on a transformed scale. In addition to this, the \texttt{voom} EList-object has a matrix of precision weights \texttt{v\$weights} and stores the design matrix in \texttt{v\$design}.
+
+
+\subsection*{Fitting linear models for comparisons of interest}
+
+Linear modelling in \textbf{limma} is carried out using the \texttt{lmFit} and \texttt{contrasts.fit} functions originally written for application to microarrays. The functions can be used for both microarray and RNA-seq data and fit a separate model to the expression values for each gene. Next, empirical Bayes moderation is carried out by borrowing information across all the genes to obtain more precise estimates of gene-wise variability \cite{Smyth:SAGMB:2004}. The model's residual variances are plotted against average expression values in {\color{red}{Figure \ref{fig:voom}B}}. It can be seen from this plot that the variance is no longer dependent on the mean expression level.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{vfit} \hlkwb{<-} \hlkwd{lmFit}\hlstd{(v, design)}
+\hlstd{vfit} \hlkwb{<-} \hlkwd{contrasts.fit}\hlstd{(vfit,} \hlkwc{contrasts}\hlstd{=contr.matrix)}
+\hlstd{efit} \hlkwb{<-} \hlkwd{eBayes}\hlstd{(vfit)}
+\hlkwd{plotSA}\hlstd{(efit)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\subsection*{Examining the number of DE genes}
+
+For a quick look at differential expression levels, the number of significantly up- and down-regulated genes can be summarised in a table. Significance is defined using an adjusted $p$-value cutoff that is set at 5\% by default. For the comparison between expression levels in basal and LP, 4,127 genes are found to be down-regulated in basal relative to LP and 4,298 genes are up-regulated in basal relative to LP -- a total of 8,425 DE genes. A total of 8,510 DE genes are found between basal and ML (4,338 down- and 4,172 up-regulated genes), and a total of 5,340 DE genes are found between LP and ML (2,895 down- and 2,445 up-regulated). The larger numbers of DE genes observed for comparisons involving the basal population are consistent with our observations from the MDS plots.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{summary}\hlstd{(}\hlkwd{decideTests}\hlstd{(efit))}
+\end{alltt}
+\begin{verbatim}
+##    BasalvsLP BasalvsML LPvsML
+## -1      4127      4338   2895
+## 0       5740      5655   8825
+## 1       4298      4172   2445
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Some studies require more than an adjusted $p$-value cut-off. For a stricter definition on significance, one may require log-fold-changes (log-FCs) to be above a minimum value. The \texttt{treat} method \cite{McCarthy:Bioinf:2009} can be used to calculate $p$-values from empirical Bayes moderated $t$-statistics with a minimum log-FC requirement. The number of differentially expressed genes are reduced to a total of 3,135 DE genes for basal versus LP, 3,270 DE genes for basal versus ML, and 385 DE genes for LP versus ML when testing requires genes to have a log-FC that is significantly greater than 1 (equivalent to a 2-fold difference between cell types on the original scale).
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{tfit} \hlkwb{<-} \hlkwd{treat}\hlstd{(vfit,} \hlkwc{lfc}\hlstd{=}\hlnum{1}\hlstd{)}
+\hlstd{dt} \hlkwb{<-} \hlkwd{decideTests}\hlstd{(tfit)}
+\hlkwd{summary}\hlstd{(dt)}
+\end{alltt}
+\begin{verbatim}
+##    BasalvsLP BasalvsML LPvsML
+## -1      1417      1512    203
+## 0      11030     10895  13780
+## 1       1718      1758    182
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Genes that are DE in multiple comparisons can be extracted using the results from \texttt{decideTests}, where 0s represent genes that are not DE, 1s represent genes that are up-regulated, and -1s represent genes that are down-regulated. A total of 2,409 genes are DE in both basal versus LP and basal versus ML ({\color{red}{Figure \ref{fig:vd}}}), twenty of which are listed below. The \texttt{write.fit} function can be used to extract and write results for all three comparisons to a single output file. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{de.common} \hlkwb{<-} \hlkwd{which}\hlstd{(dt[,}\hlnum{1}\hlstd{]}\hlopt{!=}\hlnum{0} \hlopt{&} \hlstd{dt[,}\hlnum{2}\hlstd{]}\hlopt{!=}\hlnum{0}\hlstd{)}
+\hlkwd{length}\hlstd{(de.common)}
+\end{alltt}
+\begin{verbatim}
+## [1] 2409
+\end{verbatim}
+\begin{alltt}
+\hlkwd{head}\hlstd{(tfit}\hlopt{$}\hlstd{genes}\hlopt{$}\hlstd{SYMBOL[de.common],} \hlkwc{n}\hlstd{=}\hlnum{20}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+##  [1] "Xkr4"          "Rgs20"         "Cpa6"          "Sulf1"         "Eya1"         
+##  [6] "Msc"           "Sbspon"        "Pi15"          "Crispld1"      "Kcnq5"        
+## [11] "Ptpn18"        "Arhgef4"       "2010300C02Rik" "Aff3"          "Npas2"        
+## [16] "Tbc1d8"        "Creg2"         "Il1r1"         "Il18r1"        "Il18rap"
+\end{verbatim}
+\begin{alltt}
+\hlkwd{vennDiagram}\hlstd{(dt[,}\hlnum{1}\hlopt{:}\hlnum{2}\hlstd{],} \hlkwc{circle.col}\hlstd{=}\hlkwd{c}\hlstd{(}\hlstr{"turquoise"}\hlstd{,} \hlstr{"salmon"}\hlstd{))}
+\hlkwd{write.fit}\hlstd{(tfit, dt,} \hlkwc{file}\hlstd{=}\hlstr{"results.txt"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.4\textwidth]{venndiag.pdf}
+\caption{\label{fig:vd}Venn diagram showing the number of genes DE in the comparison between basal versus LP only (left), basal versus ML only (right), and the number of genes that are DE in both comparisons (center). The number of genes that are not DE in either comparison are marked in the bottom-right.}
+\end{figure}
+
+\subsection*{Examining individual DE genes from top to bottom}
+
+The top DE genes can be listed using \texttt{topTreat} for results using \texttt{treat} (or \texttt{topTable} for results using \texttt{eBayes}). By default \texttt{topTreat} arranges genes from smallest to largest adjusted $p$-value with associated gene information, log-FC, average log-CPM, moderated $t$-statistic, raw and adjusted $p$-value for each gene. The number of top genes displayed can be specified, where \texttt{n=Inf} includes all genes. Genes \textit{Cldn7} and \textit{Rasef} are amongst the top DE genes for both basal versus LP and basal versus ML.
+\newpage
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{basal.vs.lp} \hlkwb{<-} \hlkwd{topTreat}\hlstd{(tfit,} \hlkwc{coef}\hlstd{=}\hlnum{1}\hlstd{,} \hlkwc{n}\hlstd{=}\hlnum{Inf}\hlstd{)}
+\hlstd{basal.vs.ml} \hlkwb{<-} \hlkwd{topTreat}\hlstd{(tfit,} \hlkwc{coef}\hlstd{=}\hlnum{2}\hlstd{,} \hlkwc{n}\hlstd{=}\hlnum{Inf}\hlstd{)}
+\hlkwd{head}\hlstd{(basal.vs.lp)}
+\end{alltt}
+\begin{verbatim}
+##        ENTREZID SYMBOL TXCHROM logFC AveExpr     t  P.Value adj.P.Val
+## 12759     12759    Clu   chr14 -5.44    8.86 -33.4 3.99e-10   2.7e-06
+## 53624     53624  Cldn7   chr11 -5.51    6.30 -32.9 4.50e-10   2.7e-06
+## 242505   242505  Rasef    chr4 -5.92    5.12 -31.8 6.06e-10   2.7e-06
+## 67451     67451   Pkp2   chr16 -5.72    4.42 -30.7 8.01e-10   2.7e-06
+## 228543   228543   Rhov    chr2 -6.25    5.49 -29.5 1.11e-09   2.7e-06
+## 70350     70350  Basp1   chr15 -6.07    5.25 -28.6 1.38e-09   2.7e-06
+\end{verbatim}
+\begin{alltt}
+\hlkwd{head}\hlstd{(basal.vs.ml)}
+\end{alltt}
+\begin{verbatim}
+##        ENTREZID SYMBOL TXCHROM logFC AveExpr     t  P.Value adj.P.Val
+## 242505   242505  Rasef    chr4 -6.51    5.12 -35.5 2.57e-10  1.92e-06
+## 53624     53624  Cldn7   chr11 -5.47    6.30 -32.5 4.98e-10  1.92e-06
+## 12521     12521   Cd82    chr2 -4.67    7.07 -31.8 5.80e-10  1.92e-06
+## 71740     71740  Pvrl4    chr1 -5.56    5.17 -31.3 6.76e-10  1.92e-06
+## 20661     20661  Sort1    chr3 -4.91    6.71 -31.2 6.76e-10  1.92e-06
+## 15375     15375  Foxa1   chr12 -5.75    5.63 -28.3 1.49e-09  2.28e-06
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\subsection*{Useful graphical representations of differential expression results}
+
+To summarise results for all genes visually, mean-difference plots, which display log-FCs from the linear model fit against the average log-CPM values can be generated using the \texttt{plotMD} function, with the differentially expressed genes highlighted. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{plotMD}\hlstd{(tfit,} \hlkwc{column}\hlstd{=}\hlnum{1}\hlstd{,} \hlkwc{status}\hlstd{=dt[,}\hlnum{1}\hlstd{],} \hlkwc{main}\hlstd{=}\hlkwd{colnames}\hlstd{(tfit)[}\hlnum{1}\hlstd{],}
+       \hlkwc{xlim}\hlstd{=}\hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{8}\hlstd{,}\hlnum{13}\hlstd{))}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\textbf{Glimma} extends this functionality by providing an interactive mean-difference plot via the \texttt{glMDPlot} function. 
+The output of this function is an html page, with summarised results in the left panel (similar to what is output by \texttt{plotMD}), and the log-CPM values from individual samples in the right panel, with a table of results below the plots ({\color{red}{Figure \ref{fig:GlimmaMD}}}).
+This interactive display allows the user to search for particular genes based on their Gene symbol, which is not possible in a static \textsf{R} plot. 
+The \texttt{glMDPlot} function is not limited to mean-difference plots, with a default version allowing a data frame to be passed with the user able to select the columns of interest to plot in the left panel. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{glMDPlot}\hlstd{(tfit,} \hlkwc{coef}\hlstd{=}\hlnum{1}\hlstd{,} \hlkwc{status}\hlstd{=dt[,}\hlnum{1}\hlstd{],} \hlkwc{main}\hlstd{=}\hlkwd{colnames}\hlstd{(tfit)[}\hlnum{1}\hlstd{],}
+   \hlkwc{counts}\hlstd{=x}\hlopt{$}\hlstd{counts,} \hlkwc{samples}\hlstd{=}\hlkwd{colnames}\hlstd{(x),} \hlkwc{anno}\hlstd{=x}\hlopt{$}\hlstd{genes,} \hlkwc{groups}\hlstd{=group,}
+   \hlkwc{id.column}\hlstd{=}\hlstr{"ENTREZID"}\hlstd{,} \hlkwc{display.columns}\hlstd{=}\hlkwd{c}\hlstd{(}\hlstr{"SYMBOL"}\hlstd{,} \hlstr{"ENTREZID"}\hlstd{),}
+   \hlkwc{search.by}\hlstd{=}\hlstr{"SYMBOL"}\hlstd{,} \hlkwc{launch}\hlstd{=}\hlnum{FALSE}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{glMDplot.png}
+\caption{\label{fig:GlimmaMD}Interactive mean-difference plot generated using \textbf{Glimma}. Summary data (log-FCs versus log-CPM values) are shown in the left panel which is linked to the individual values per sample for a selected gene in the right panel. A table of results is also displayed below these figures, along with a search bar to allow users to look up a particular gene using its Gene symbol identifier, e.g. \textit{Clu}.}
+\end{figure}
+
+The mean-difference plot generated by the command above is available online (see \\ \url{http://bioinf.wehi.edu.au/folders/limmaWorkflow/glimma-plots/MD-Plot.html}). 
+The interactivity provided by the \textbf{Glimma} package allows additional information to be presented in a single graphical window. 
+%The linked actions between plots allow for more efficient analysis and the graphical transitions help identify the behaviour in certain samples. 
+\textbf{Glimma} is implemented in \textsf{R} and Javascript, with the \textsf{R} code generating the data which is converted into graphics using the Javascript library D3 (\url{https://d3js.org}), with the Bootstrap library handling layouts and Datatables generating the interactive searchable tables. 
+%The Javascript library D3 is the backbone of the graphics created by \textbf{Glimma}, with the Bootstrap library handling layouts and Datatables generating interactive searchable tables. 
+This allows plots to be viewed in any modern browser, which is convenient for including them as linked files from an Rmarkdown report of the analysis.\\
+
+Plots shown previously include either all of the genes that are expressed in any one condition (such as the Venn diagram of common DE genes or mean-difference plot) or look at genes individually (log-CPM values shown in right panel of the interactive mean-difference plot). Heatmaps allow users to look at the expression of a subset of genes. This can be give useful insight into the expression of individual groups and samples without losing perspective of the overall study when focusing on individual genes, or losing resolution when examining patterns averaged over thousands of genes at the same time.\\
+
+A heatmap is created for the top 100 DE genes (as ranked by adjusted p-value) from the basal versus LP contrast using the \texttt{heatmap.2} function from the \textbf{gplots} package ({\color{red}{Figure \ref{fig:heatmap}}}). The heatmap correctly clusters samples into cell type and rearranges the order of genes to form blocks of similar expression. From the heatmap, we observe that the expression of ML and LP samples are very similar for the top 100 DE genes between basal and LP.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(gplots)}
+\hlstd{basal.vs.lp.topgenes} \hlkwb{<-} \hlstd{basal.vs.lp}\hlopt{$}\hlstd{ENTREZID[}\hlnum{1}\hlopt{:}\hlnum{100}\hlstd{]}
+\hlstd{i} \hlkwb{<-} \hlkwd{which}\hlstd{(v}\hlopt{$}\hlstd{genes}\hlopt{$}\hlstd{ENTREZID} \hlopt{%in%} \hlstd{basal.vs.lp.topgenes)}
+\hlstd{mycol} \hlkwb{<-} \hlkwd{colorpanel}\hlstd{(}\hlnum{1000}\hlstd{,}\hlstr{"blue"}\hlstd{,}\hlstr{"white"}\hlstd{,}\hlstr{"red"}\hlstd{)}
+\hlkwd{heatmap.2}\hlstd{(v}\hlopt{$}\hlstd{E[i,],} \hlkwc{scale}\hlstd{=}\hlstr{"row"}\hlstd{,}
+   \hlkwc{labRow}\hlstd{=v}\hlopt{$}\hlstd{genes}\hlopt{$}\hlstd{SYMBOL[i],} \hlkwc{labCol}\hlstd{=group,}
+   \hlkwc{col}\hlstd{=mycol,} \hlkwc{trace}\hlstd{=}\hlstr{"none"}\hlstd{,} \hlkwc{density.info}\hlstd{=}\hlstr{"none"}\hlstd{,}
+   \hlkwc{margin}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{8}\hlstd{,}\hlnum{6}\hlstd{),} \hlkwc{lhei}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{2}\hlstd{,}\hlnum{10}\hlstd{),} \hlkwc{dendrogram}\hlstd{=}\hlstr{"column"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{heatmap.pdf}
+\caption{\label{fig:heatmap} Heatmap of log-CPM values for top 100 genes DE in basal versus LP. Expression across each gene (or row) have been scaled so that mean expression is zero and standard deviation is one. Samples with relatively high expression within a gene are marked in red, samples with relatively low expression are marked in blue. Lighter shades and white represent genes with intermediate expression levels. Samples and genes have been reordered by the method of hierarchical clustering. A dendrogram is shown for the clustering of samples.}
+\end{figure}
+
+
+\section*{Gene set testing with camera}
+
+We finish off this analysis with some gene set testing by applying the {\it camera} method \cite{Wu2012} to the {\it c2} gene signatures from Broad Institute's MSigDB c2 collection \cite{Subramanianetal:PNAS:2005} that have been adapted for mouse and are available as Rdata objects from \url{http://bioinf.wehi.edu.au/software/MSigDB/}. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{load}\hlstd{(}\hlkwd{url}\hlstd{(}\hlstr{"http://bioinf.wehi.edu.au/software/MSigDB/mouse_c2_v5p1.rdata"}\hlstd{))}
+\hlstd{idx} \hlkwb{<-} \hlkwd{ids2indices}\hlstd{(Mm.c2,}\hlkwc{id}\hlstd{=}\hlkwd{rownames}\hlstd{(v))}
+\hlstd{cam.BasalvsLP} \hlkwb{<-} \hlkwd{camera}\hlstd{(v,idx,design,}\hlkwc{contrast}\hlstd{=contr.matrix[,}\hlnum{1}\hlstd{],}
+                        \hlkwc{inter.gene.cor}\hlstd{=}\hlnum{0.01}\hlstd{)}
+\hlkwd{head}\hlstd{(cam.BasalvsLP,}\hlnum{5}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+##                                             NGenes Correlation Direction   PValue
+## LIM_MAMMARY_STEM_CELL_UP                       739        0.01        Up 1.13e-18
+## LIM_MAMMARY_STEM_CELL_DN                       630        0.01      Down 1.57e-15
+## ROSTY_CERVICAL_CANCER_PROLIFERATION_CLUSTER    163        0.01        Up 1.44e-13
+## SOTIRIOU_BREAST_CANCER_GRADE_1_VS_3_UP         183        0.01        Up 2.18e-13
+## LIM_MAMMARY_LUMINAL_PROGENITOR_UP               87        0.01      Down 6.73e-13
+##                                                  FDR
+## LIM_MAMMARY_STEM_CELL_UP                    5.36e-15
+## LIM_MAMMARY_STEM_CELL_DN                    3.71e-12
+## ROSTY_CERVICAL_CANCER_PROLIFERATION_CLUSTER 2.26e-10
+## SOTIRIOU_BREAST_CANCER_GRADE_1_VS_3_UP      2.58e-10
+## LIM_MAMMARY_LUMINAL_PROGENITOR_UP           6.36e-10
+\end{verbatim}
+\begin{alltt}
+\hlstd{cam.BasalvsML} \hlkwb{<-} \hlkwd{camera}\hlstd{(v,idx,design,}\hlkwc{contrast}\hlstd{=contr.matrix[,}\hlnum{2}\hlstd{],}
+                        \hlkwc{inter.gene.cor}\hlstd{=}\hlnum{0.01}\hlstd{)}
+\hlkwd{head}\hlstd{(cam.BasalvsML,}\hlnum{5}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+##                                             NGenes Correlation Direction   PValue
+## LIM_MAMMARY_STEM_CELL_UP                       739        0.01        Up 5.09e-23
+## LIM_MAMMARY_STEM_CELL_DN                       630        0.01      Down 5.13e-19
+## LIM_MAMMARY_LUMINAL_MATURE_DN                  166        0.01        Up 8.88e-16
+## LIM_MAMMARY_LUMINAL_MATURE_UP                  180        0.01      Down 6.29e-13
+## ROSTY_CERVICAL_CANCER_PROLIFERATION_CLUSTER    163        0.01        Up 1.68e-12
+##                                                  FDR
+## LIM_MAMMARY_STEM_CELL_UP                    2.40e-19
+## LIM_MAMMARY_STEM_CELL_DN                    1.21e-15
+## LIM_MAMMARY_LUMINAL_MATURE_DN               1.40e-12
+## LIM_MAMMARY_LUMINAL_MATURE_UP               7.43e-10
+## ROSTY_CERVICAL_CANCER_PROLIFERATION_CLUSTER 1.59e-09
+\end{verbatim}
+\begin{alltt}
+\hlstd{cam.LPvsML} \hlkwb{<-} \hlkwd{camera}\hlstd{(v,idx,design,}\hlkwc{contrast}\hlstd{=contr.matrix[,}\hlnum{3}\hlstd{],}
+                     \hlkwc{inter.gene.cor}\hlstd{=}\hlnum{0.01}\hlstd{)}
+\hlkwd{head}\hlstd{(cam.LPvsML,}\hlnum{5}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+##                                         NGenes Correlation Direction   PValue      FDR
+## LIM_MAMMARY_LUMINAL_MATURE_UP              180        0.01      Down 8.50e-14 3.40e-10
+## LIM_MAMMARY_LUMINAL_MATURE_DN              166        0.01        Up 1.44e-13 3.40e-10
+## LIM_MAMMARY_LUMINAL_PROGENITOR_UP           87        0.01        Up 3.84e-11 6.05e-08
+## REACTOME_RESPIRATORY_ELECTRON_TRANSPORT     91        0.01      Down 2.66e-08 3.14e-05
+## NABA_CORE_MATRISOME                        222        0.01        Up 4.43e-08 4.19e-05
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+The \texttt{camera} function performs a competitive test to assess whether the genes in a given set are highly ranked in terms of differential expression relative to genes that are not in the set. 
+It uses \textbf{limma}'s linear model framework, taking both the design matrix and contrast matrix (if present) and accommodates the observational-level weights from {\it voom} in the testing procedure.
+After adjusting the variance of the resulting gene set test statistic by a variance inflation factor, that depends on the gene-wise correlation (which can be estimated from the data or specified by the user) and the size of the set, a $p$-value is returned and adjusted for multiple testing. Here we set \texttt{inter.gene.cor} to \texttt{0.01} for all gene sets which produces a less conservative test that performs well in many practical situations.\\
+
+This experiment is the RNA-seq equivalent of Lim {\it et al.} (2010) \cite{Lim:BreastCancerRes:2010}, who used Illumina microarrays to profile the same sorted cell populations, so it is reassuring to see the gene signatures from this earlier publication coming up at the top of the list for each contrast. We make a barcodeplot of the Lim {\it et al.} (2010) Mature Luminal gene sets (Up and Down) in the LP versus ML contrast. Note that these sets go in the opposite direction in our dataset due to our parameterization which compares LP against ML rather than the other way around (if the contrast were reversed, the directions would be consistent).
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{barcodeplot}\hlstd{(efit}\hlopt{$}\hlstd{t[,}\hlnum{3}\hlstd{],} \hlkwc{index}\hlstd{=idx}\hlopt{$}\hlstd{LIM_MAMMARY_LUMINAL_MATURE_UP,}
+            \hlkwc{index2}\hlstd{=idx}\hlopt{$}\hlstd{LIM_MAMMARY_LUMINAL_MATURE_DN,} \hlkwc{main}\hlstd{=}\hlstr{"LPvsML"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{barcodeplot.pdf}
+\caption{\label{fig:barcode} Barcode plot of LIM$\_$MAMMARY$\_$LUMINAL$\_$MATURE$\_$UP (red bars, top of plot) and LIM$\_$MAMMARY$\_$LUMINAL$\_$MATURE$\_$DN (blue bars, bottom of plot) gene sets in the LP versus ML contrast with an enrichment line for each set that shows the relative enrichment of the vertical bars in each part of the plot.
+The experiment of Lim {\it et al.} (2010) is very similar to the current one, with the same sorting strategy used to obtain the different cell populations, except that microarrays were used instead of RNA-seq to profile gene expression. Note that the inverse correlation (the up gene set is down and the down gene set is up) is a result of the way the contrast has been set up (LP versus ML) -- if reversed, the directionality would agree.}
+\end{figure}
+
+
+\section*{Software availability}
+This RNA-seq workflow makes use of various packages available from version 3.4 of the Bioconductor project, running on R \cite{R} version 3.3.0 or higher. Besides the packages highlighted in this article (\textbf{limma}, \textbf{Glimma} and \textbf{edgeR}) it requires a number of other software packages, including \textbf{gplots} \cite{gplots} and \textbf{RColorBrewer} and the gene annotation package \textbf{Mus.musculus}. 
+This document was compiled using \textbf{knitr} \cite{knitr2014, knitr2015, knitr2016}.
+Version numbers for all packages used are shown below.
+Code to perform this analysis is available from the Supplementary Materials website at \newline \url{http://bioinf.wehi.edu.au/folders/limmaWorkflow/} and as a Bioconductor workflow from \newline \url{http://www.bioconductor.org/help/workflows/}.
+% * <paola.quattroni@f1000.com> 2016-06-03T11:01:02.022Z:
+%
+% > Code to perform this analysis is available from the Supplementary materials website
+%
+% Please would it be possible to upload the codes in Zenodo so that we would have an archived version of these and a unique identifier?
+%
+% ^ <paola.quattroni@f1000.com> 2016-06-06T10:52:26.777Z.
+% Response: Apparently this is going to be managed through the Bioconductor website - I just received an email about this from Wolfgang Huber - the website above is the address from which these workflows will be made available, so I imagine each of the workflow articles you are processing over the next few days will need such a link
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{sessionInfo}\hlstd{()}
+\end{alltt}
+\begin{verbatim}
+## R version 3.3.0 (2016-05-03)
+## Platform: x86_64-pc-linux-gnu (64-bit)
+## Running under: CentOS release 6.4 (Final)
+## 
+## locale:
+##  [1] LC_CTYPE=en_AU.UTF-8       LC_NUMERIC=C               LC_TIME=en_AU.UTF-8       
+##  [4] LC_COLLATE=en_AU.UTF-8     LC_MONETARY=en_AU.UTF-8    LC_MESSAGES=en_AU.UTF-8   
+##  [7] LC_PAPER=en_AU.UTF-8       LC_NAME=C                  LC_ADDRESS=C              
+## [10] LC_TELEPHONE=C             LC_MEASUREMENT=en_AU.UTF-8 LC_IDENTIFICATION=C       
+## 
+## attached base packages:
+## [1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods  
+## [9] base     
+## 
+## other attached packages:
+##  [1] gplots_3.0.1                             Glimma_1.1.1                            
+##  [3] RColorBrewer_1.1-2                       Mus.musculus_1.3.1                      
+##  [5] TxDb.Mmusculus.UCSC.mm10.knownGene_3.2.2 org.Mm.eg.db_3.3.0                      
+##  [7] GO.db_3.3.0                              OrganismDbi_1.14.0                      
+##  [9] GenomicFeatures_1.24.0                   GenomicRanges_1.24.0                    
+## [11] GenomeInfoDb_1.8.1                       AnnotationDbi_1.34.3                    
+## [13] IRanges_2.6.0                            S4Vectors_0.10.1                        
+## [15] Biobase_2.32.0                           BiocGenerics_0.18.0                     
+## [17] edgeR_3.14.0                             limma_3.28.5                            
+## 
+## loaded via a namespace (and not attached):
+##  [1] locfit_1.5-9.1             Rcpp_0.12.5                lattice_0.20-33           
+##  [4] gtools_3.5.0               Rsamtools_1.24.0           Biostrings_2.40.1         
+##  [7] plyr_1.8.3                 chron_2.3-47               acepack_1.3-3.3           
+## [10] RSQLite_1.0.0              evaluate_0.9               ggplot2_2.1.0             
+## [13] highr_0.5.1                BiocInstaller_1.23.4       zlibbioc_1.18.0           
+## [16] gdata_2.17.0               annotate_1.50.0            data.table_1.9.6          
+## [19] R.utils_2.3.0              R.oo_1.20.0                rpart_4.1-10              
+## [22] Matrix_1.2-6               splines_3.3.0              BiocParallel_1.6.2        
+## [25] geneplotter_1.50.0         stringr_1.0.0              foreign_0.8-66            
+## [28] RCurl_1.95-4.8             biomaRt_2.28.0             munsell_0.4.3             
+## [31] rtracklayer_1.32.0         nnet_7.3-12                SummarizedExperiment_1.2.2
+## [34] gridExtra_2.2.1            Hmisc_3.17-4               XML_3.98-1.4              
+## [37] GenomicAlignments_1.8.0    bitops_1.0-6               R.methodsS3_1.7.1         
+## [40] grid_3.3.0                 RBGL_1.48.0                xtable_1.8-2              
+## [43] gtable_0.2.0               DBI_0.4-1                  magrittr_1.5              
+## [46] formatR_1.3                scales_0.4.0               KernSmooth_2.23-15        
+## [49] graph_1.50.0               stringi_1.0-1              XVector_0.12.0            
+## [52] genefilter_1.54.2          latticeExtra_0.6-28        Formula_1.2-1             
+## [55] tools_3.3.0                DESeq2_1.12.2              survival_2.39-3           
+## [58] colorspace_1.2-6           cluster_2.0.4              caTools_1.17.1            
+## [61] knitr_1.12.3
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\subsection*{Author contributions}
+All authors were involved in writing and contributing code for the article.
+
+\subsection*{Competing interests}
+The authors declare that they have no competing interests.
+
+\subsection*{Grant information}
+This worked was funded by the National Health and Medical Research Council (NHMRC) (Fellowship GNT1058892 and Program GNT1054618 to GKS, Project GNT1050661 to MER and GKS and Fellowship GNT1104924 to MER), Victorian State Government Operational Infrastructure Support and Australian Government NHMRC IRIISS.
+
+\subsection*{Acknowledgements}
+We thank Dr Julie Sheridan for generating this dataset and for advice on its analysis.
+
+
+\nocite{*}
+{\small\bibliographystyle{unsrt}
+\bibliography{sample}}
+
+\end{document}
