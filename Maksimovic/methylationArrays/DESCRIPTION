@@ -1,0 +1,28 @@
+Package: methylationArrays
+Title: Dummy Package
+Version: 0.0.1
+Authors@R: person(role=c("aut", "cre"), "Bioconductor Package",
+        "Maintainer", email = "maintainer@bioconductor.org")
+Description: dummy package
+Depends: R (>= 3.3.0)
+License: Artistic-2.0
+Encoding: UTF-8
+LazyData: true
+VignetteBuilder: knitr
+biocViews: Workflows
+Suggests: knitr, 
+    rmarkdown,
+    limma,
+    minfi,
+    IlluminaHumanMethylation450kanno.ilmn12.hg19,
+    IlluminaHumanMethylation450kmanifest,
+    RColorBrewer,
+    missMethyl,
+    matrixStats,
+    minfiData,
+    Gviz,
+    DMRcate,
+    stringr
+NeedsCompilation: no
+Author: Bioconductor Package Maintainer [aut, cre]
+Maintainer: Bioconductor Package Maintainer <maintainer@bioconductor.org>
