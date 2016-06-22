@@ -11,14 +11,16 @@ author:
   - name: Gordon K. Smyth
     affiliation: The Walter and Eliza Hall Institute of Medical Research, 1G Royal Parade, Parkville, VIC 3052, Melbourne, Australia; School of Mathematics and Statistics, The University of Melbourne, Parkville, VIC 3010, Melbourne, Australia
   - name: Matthew E. Ritchie
-    affiliation: The Walter and Eliza Hall Institute of Medical Research, 1G Royal Parade, Parkville, VIC 3052, Melbourne, Australia; Department of Medical Biology, The University of Melbourne, Parkville, VIC 3010, Melbourne, Australia; School of Mathematics and Statistics, The University of Melbourne, Parkville, VIC 3010, Melbourne, Australia\
+    affiliation: The Walter and Eliza Hall Institute of Medical Research, 1G Royal Parade, Parkville, VIC 3052, Melbourne, Australia; Department of Medical Biology, The University of Melbourne, Parkville, VIC 3010, Melbourne, Australia; School of Mathematics and Statistics, The University of Melbourne, Parkville, VIC 3010, Melbourne, Australia
 date: 31 May 2016
-output: BiocStyle::html_document
 vignette: >
   %\VignetteIndexEntry{RNA-seq analysis is easy as 1-2-3 with limma, Glimma and edgeR}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8} 
 bibliography: sample.bib
+output: 
+  BiocStyle::html_document:
+    fig_caption: true
 ---
 
 # Introduction
@@ -53,7 +55,7 @@ biocLite("Glimma", suppressUpdates=TRUE)
 
 ## Reading in count-data
 
-To get started with this analysis, download the file *GSE63310_RAW.tar* available online from \url{http://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63310&format=file}, and extract the relevant files from this archive. The code below will do this, or you can do this step manually and them move on.
+To get started with this analysis, download the file *GSE63310_RAW.tar* available online from [http://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63310&format=file](http://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63310&format=file), and extract the relevant files from this archive. The code below will do this, or you can do this step manually and them move on.
 
 ```{r downloadData}
 url <- "http://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63310&format=file"
@@ -163,14 +165,15 @@ lcpm <- cpm(x, log=TRUE)
 ```
 
 ## Removing genes that are not expressed
-All datasets will include a mix of genes that are expressed and those that are not expressed. Whilst it is of interest to examine genes that are expressed in one condition but not in another, some genes are unexpressed throughout all samples. In fact, 19\% of genes in this dataset have zero counts across all nine samples.
+
+All datasets will include a mix of genes that are expressed and those that are not expressed. Whilst it is of interest to examine genes that are expressed in one condition but not in another, some genes are unexpressed throughout all samples. In fact, 19% of genes in this dataset have zero counts across all nine samples.
 
 ```{r zeroes}
 table(rowSums(x$counts==0)==9)
 ```
 
 Genes that are not expressed at a biologically meaningful level in any condition should be discarded to reduce the subset of genes to those that are of interest, and to reduce the number of tests carried out downstream when looking at differential expression.
-Upon examination of log-CPM values, it can be seen that a large proportion of genes within each sample is unexpressed or lowly-expressed ({\color{red}{Figure \ref{fig:filter}A}}). Using a nominal CPM value of 1 (which is equivalent to a log-CPM value of 0) genes are deemed to be expressed if its expression is above this threshold, and unexpressed otherwise. Genes must be expressed in at least one group (or roughly any three samples across the entire experiment) to be kept for downstream analysis. 
+Upon examination of log-CPM values, it can be seen that a large proportion of genes within each sample is unexpressed or lowly-expressed (shown in panel A of the next figure). Using a nominal CPM value of 1 (which is equivalent to a log-CPM value of 0) genes are deemed to be expressed if its expression is above this threshold, and unexpressed otherwise. Genes must be expressed in at least one group (or roughly any three samples across the entire experiment) to be kept for downstream analysis. 
 
 ```{r filter}
 keep.exprs <- rowSums(cpm>1)>=3
@@ -178,9 +181,9 @@ x <- x[keep.exprs,, keep.lib.sizes=FALSE]
 dim(x)
 ```
 
-Using this criterion, the number of genes is reduced to approximately half the number that we started with (14,165 genes, {\color{red}{Figure \ref{fig:filter}B}}). Note that subsetting the entire DGEList-object removes both the counts as well as the associated gene information. Code to produce {\color{red}{Figure \ref{fig:filter}}} is given below.
+Using this criterion, the number of genes is reduced to approximately half the number that we started with (14,165 genes, panel B of the next figure). Note that subsetting the entire DGEList-object removes both the counts as well as the associated gene information. Code to produce the figure is given below.
 
-```{r filterplot1, fig.height=4, fig.width=8}
+```{r filterplot1, fig.height=4, fig.width=8, fig.cap="The density of log-CPM values for raw pre-filtered data (A.) and post-filtered data (B.) are shown for each sample. Dotted vertical lines mark the log-CPM of zero threshold (equivalent to a CPM value of 1) used in the filtering step."}
 library(RColorBrewer)
 nsamples <- ncol(x)
 col <- brewer.pal(nsamples, "Paired")
@@ -209,7 +212,7 @@ legend("topright", samplenames, text.col=col, bty="n")
 ## Normalising gene expression distributions
 During the sample preparation or sequencing process, external factors that are not of biological interest can affect the expression of individual samples. For example, samples processed in the first batch of an experiment can have higher expression overall when compared to samples processed in a second batch. It is assumed that all samples should have a similar range and distribution of expression values. Normalisation is required to ensure that the expression distributions of each sample are similar across the entire experiment. 
 
-Any plot showing the per sample expression distributions, such as a density or boxplot, is useful in determining whether any samples are dissimilar to others. Distributions of log-CPM values are similar throughout all samples within this dataset ({\color{red}{Figure \ref{fig:filter}B}}).   
+Any plot showing the per sample expression distributions, such as a density or boxplot, is useful in determining whether any samples are dissimilar to others. Distributions of log-CPM values are similar throughout all samples within this dataset (panel B of the figure above).   
 
 Nonetheless, normalisation by the method of trimmed mean of M-values (TMM) [@RobinsonOshlack:GenomeBiol:2010] is performed using the \newline `calcNormFactors` function in **edgeR**. The normalisation factors calculated here are used as a scaling factor for the library sizes. When working with DGEList-objects, these normalisation factors are automatically stored in \newline `x$samples$norm.factors`. For this dataset the effect of TMM-normalisation is mild, as evident in the magnitude of the scaling factors, which are all relatively close to 1. 
 
@@ -227,9 +230,9 @@ x2$counts[,1] <- ceiling(x2$counts[,1]*0.05)
 x2$counts[,2] <- x2$counts[,2]*5
 ```
 
-{\color{red}{Figure \ref{fig:normalisation}}} shows the expression distribution of samples for unnormalised and normalised data, where distributions are noticeably different pre-normalisation and are similar post-normalisation. Here the first sample has a small TMM scaling factor of 0.05, whereas the second sample has a large scaling factor of 6.13 -- neither values are close to 1.
+The figure below shows the expression distribution of samples for unnormalised and normalised data, where distributions are noticeably different pre-normalisation and are similar post-normalisation. Here the first sample has a small TMM scaling factor of 0.05, whereas the second sample has a large scaling factor of 6.13 -- neither values are close to 1.
 
-```{r plotmodifieddata, fig.height=4, fig.width=8}
+```{r plotmodifieddata, fig.height=4, fig.width=8, fig.cap="Example data: Boxplots of log-CPM values showing expression distributions for unnormalised data (A) and normalised data (B) for each sample in the modified dataset where the counts in samples 1 and 2 have been scaled to 5% and 500% of their original values respectively."}
 par(mfrow=c(1,2))
 lcpm <- cpm(x2, log=TRUE)
 boxplot(lcpm, las=2, col=col, main="")
@@ -247,7 +250,7 @@ In our opinion, one of the most important exploratory plots to examine for gene 
 
 Such a plot can be made in **limma** using the `plotMDS` function. The first dimension represents the leading-fold-change that best separates samples and explains the largest proportion of variation in the data, with subsequent dimensions having a smaller effect and being orthogonal to the ones before it. When experimental design involves multiple factors, it is recommended that each factor is examined over several dimensions. If samples cluster by a given factor in any of these dimensions, it suggests that the factor contributes to expression differences and is worth including in the linear modelling. On the other hand, factors that show little or no effect may be left out of downstream analysis.
 
-In this dataset, samples can be seen to cluster well within experimental groups over dimension 1 and 2, and then separate by sequencing lane (sample batch) over dimension 3 ({\color{red}{Figure \ref{fig:MDS}}}). Keeping in mind that the first dimension explains the largest proportion of variation in the data, notice that the range of values over the dimensions become smaller as we move to higher dimensions.
+In this dataset, samples can be seen to cluster well within experimental groups over dimension 1 and 2, and then separate by sequencing lane (sample batch) over dimension 3 (shown in the plot below). Keeping in mind that the first dimension explains the largest proportion of variation in the data, notice that the range of values over the dimensions become smaller as we move to higher dimensions.
 
 Whilst all samples cluster by groups, the largest transcriptional difference is observed between basal and LP, and basal and ML over dimension 1. For this reason, it is expected that pairwise comparisons between cell populations will result in a greater number of DE genes for comparisons involving basal samples, and relatively small numbers of DE genes when comparing ML to LP. In other datasets, samples that do not cluster by their groups of interest may also show little or no evidence of differential expression in the downstream analysis. 
 
@@ -255,7 +258,7 @@ To create the MDS plots, different colour groupings are assigned to factors of i
 
 Dimensions 3 and 4 are examined using the colour grouping defined by sequencing lanes (batch).
 
-```{r MDS1, fig.height=4, fig.width=8}
+```{r MDS1, fig.height=4, fig.width=8, fig.cap="MDS plots of log-CPM values over dimensions 1 and 2 with samples coloured and labeled by sample groups (A) and over dimensions 3 and 4 with samples coloured and labeled by sequencing lane (B). Distances on the plot correspond to the leading fold-change, which is the average (root-mean-square) log2-fold-change for the 500 genes most divergent between each pair of samples by default."}
 lcpm <- cpm(x, log=TRUE)
 par(mfrow=c(1,2))
 col.group <- group
@@ -316,7 +319,7 @@ It has been shown that for RNA-seq count data, the variance is not independent o
 
 When operating on a DGEList-object, `voom` converts raw counts to log-CPM values by automatically extracting library sizes and normalisation factors from `x` itself. For a matrix of counts, the method of normalisation can be specified within `voom` using the  `normalize.method` (by default no normalisation is performed).
 
-The mean-variance relationship of log-CPM values for this dataset is shown in {\color{red}{Figure \ref{fig:voom}A}}. Typically, the ``voom-plot" shows a decreasing trend between the means and variances resulting from a combination of technical variation in the sequencing experiment and biological variation amongst the replicate samples from different cell populations.
+The mean-variance relationship of log-CPM values for this dataset is shown in the left-hand panel of the next figure. Typically, the ``voom-plot" shows a decreasing trend between the means and variances resulting from a combination of technical variation in the sequencing experiment and biological variation amongst the replicate samples from different cell populations.
 Experiments with high biological variation usually result in flatter trends, where variance values plateau at high expression values. 
 Experiments with low biological variation tend to result in sharp decreasing trends. 
 
@@ -324,18 +327,21 @@ Moreover, the voom-plot provides a visual check on the level of filtering perfor
 
 Where sample-level variation is evident from earlier inspections of the MDS plot, the `voomWithQualityWeights` function can be used to simultaneously incorporate sample-level weights together with the abundance dependent weights estimated by `voom` [@Liu:NAR:2015]. For an example of this, see Liu *et al.* (2016) [@Liu:GenomicsData:2016].
 
+```{r voom, fig.height=4, fig.width=8, plot.cap="Means (x-axis) and variances (y-axis) of each gene are plotted to show the dependence between the two before `voom` is applied to the data (A) and how the trend is removed after `voom` precision weights are applied to the data (B). The plot on the left is created within the `voom` function which extracts residual variances from fitting linear models to log-CPM transformed data. Variances are then rescaled to quarter-root variances (or square-root of standard deviations) and plotted against the mean expression of each gene. The means are log2-transformed mean-counts with an offset of 0.5. The plot on the right is created using `plotSA` which plots log2 residual standard deviations against mean log-CPM values. The average log2 residual standard deviation is marked by a horizontal blue line. In both plots, each black dot represents a gene and a red curve is fitted to these points."}
+par(mfrow=c(1,2))
+v <- voom(x, design, plot=TRUE)
+v
+```
+
 Note that the other data frames stored within the DGEList-object that contain gene- and sample-level information, are retained in the EList-object `v` created by `voom`. The `v$genes` data frame is equivalent to `x$genes`, `v$targets` is equivalent to `x$samples`, and the expression values stored in `v$E` is analogous to `x$counts`, albeit on a transformed scale. In addition to this, the `voom` EList-object has a matrix of precision weights `v$weights` and stores the design matrix in `v$design`.
 
 
 ## Fitting linear models for comparisons of interest
 
-Linear modelling in **limma** is carried out using the `lmFit` and `contrasts.fit` functions originally written for application to microarrays. The functions can be used for both microarray and RNA-seq data and fit a separate model to the expression values for each gene. Next, empirical Bayes moderation is carried out by borrowing information across all the genes to obtain more precise estimates of gene-wise variability [@Smyth:SAGMB:2004]. The model's residual variances are plotted against average expression values in {\color{red}{Figure \ref{fig:voom}B}}. It can be seen from this plot that the variance is no longer dependent on the mean expression level.
+Linear modelling in **limma** is carried out using the `lmFit` and `contrasts.fit` functions originally written for application to microarrays. The functions can be used for both microarray and RNA-seq data and fit a separate model to the expression values for each gene. Next, empirical Bayes moderation is carried out by borrowing information across all the genes to obtain more precise estimates of gene-wise variability [@Smyth:SAGMB:2004]. The model's residual variances are plotted against average expression values in the next figure. It can be seen from this plot that the variance is no longer dependent on the mean expression level.
 
 
-```{r voom, fig.height=4, fig.width=8}
-par(mfrow=c(1,2))
-v <- voom(x, design, plot=TRUE)
-v
+```{r lmFit, fig.height=4, fig.width=8}
 vfit <- lmFit(v, design)
 vfit <- contrasts.fit(vfit, contrasts=contr.matrix)
 efit <- eBayes(vfit)
@@ -358,9 +364,9 @@ dt <- decideTests(tfit)
 summary(dt)
 ```
 
-Genes that are DE in multiple comparisons can be extracted using the results from `decideTests`, where 0s represent genes that are not DE, 1s represent genes that are up-regulated, and -1s represent genes that are down-regulated. A total of 2,409 genes are DE in both basal versus LP and basal versus ML ({\color{red}{Figure \ref{fig:vd}}}), twenty of which are listed below. The `write.fit` function can be used to extract and write results for all three comparisons to a single output file. 
+Genes that are DE in multiple comparisons can be extracted using the results from `decideTests`, where 0s represent genes that are not DE, 1s represent genes that are up-regulated, and -1s represent genes that are down-regulated. A total of 2,409 genes are DE in both basal versus LP and basal versus ML, twenty of which are listed below. The `write.fit` function can be used to extract and write results for all three comparisons to a single output file. 
 
-```{r venn, fig.height=6, fig.width=6}
+```{r venn, fig.height=6, fig.width=6, fig.cap="Venn diagram showing the number of genes DE in the comparison between basal versus LP only (left), basal versus ML only (right), and the number of genes that are DE in both comparisons (center). The number of genes that are not DE in either comparison are marked in the bottom-right."}
 de.common <- which(dt[,1]!=0 & dt[,2]!=0)
 length(de.common)
 head(tfit$genes$SYMBOL[de.common], n=20)
@@ -389,7 +395,7 @@ plotMD(tfit, column=1, status=dt[,1], main=colnames(tfit)[1],
 ```
 
 **Glimma** extends this functionality by providing an interactive mean-difference plot via the `glMDPlot` function. 
-The output of this function is an html page, with summarised results in the left panel (similar to what is output by `plotMD`), and the log-CPM values from individual samples in the right panel, with a table of results below the plots ({\color{red}{Figure \ref{fig:GlimmaMD}}}).
+The output of this function is an html page, with summarised results in the left panel (similar to what is output by `plotMD`), and the log-CPM values from individual samples in the right panel, with a table of results below the plots.
 This interactive display allows the user to search for particular genes based on their Gene symbol, which is not possible in a static **R** plot. 
 The `glMDPlot` function is not limited to mean-difference plots, with a default version allowing a data frame to be passed with the user able to select the columns of interest to plot in the left panel. 
 
@@ -411,7 +417,7 @@ This allows plots to be viewed in any modern browser, which is convenient for in
 
 Plots shown previously include either all of the genes that are expressed in any one condition (such as the Venn diagram of common DE genes or mean-difference plot) or look at genes individually (log-CPM values shown in right panel of the interactive mean-difference plot). Heatmaps allow users to look at the expression of a subset of genes. This can be give useful insight into the expression of individual groups and samples without losing perspective of the overall study when focusing on individual genes, or losing resolution when examining patterns averaged over thousands of genes at the same time.
 
-A heatmap is created for the top 100 DE genes (as ranked by adjusted p-value) from the basal versus LP contrast using the `heatmap.2` function from the **gplots** package ({\color{red}{Figure \ref{fig:heatmap}}}). The heatmap correctly clusters samples into cell type and rearranges the order of genes to form blocks of similar expression. From the heatmap, we observe that the expression of ML and LP samples are very similar for the top 100 DE genes between basal and LP.
+A heatmap is created for the top 100 DE genes (as ranked by adjusted p-value) from the basal versus LP contrast using the `heatmap.2` function from the **gplots** package. The heatmap correctly clusters samples into cell type and rearranges the order of genes to form blocks of similar expression. From the heatmap, we observe that the expression of ML and LP samples are very similar for the top 100 DE genes between basal and LP.
 
 ```{r heatmap, fig.height=10, fig.width=7}
 library(gplots)
@@ -449,9 +455,7 @@ After adjusting the variance of the resulting gene set test statistic by a varia
 
 This experiment is the RNA-seq equivalent of Lim *et al.* (2010) [@Lim:BreastCancerRes:2010], who used Illumina microarrays to profile the same sorted cell populations, so it is reassuring to see the gene signatures from this earlier publication coming up at the top of the list for each contrast. We make a barcodeplot of the Lim *et al.* (2010) Mature Luminal gene sets (Up and Down) in the LP versus ML contrast. Note that these sets go in the opposite direction in our dataset due to our parameterization which compares LP against ML rather than the other way around (if the contrast were reversed, the directions would be consistent).
 
-```{r barcodeplot, fig.height=6, fig.width=6}
-barcodeplot(efit$t[,3], index=idx$LIM_MAMMARY_LUMINAL_MATURE_UP, 
-            index2=idx$LIM_MAMMARY_LUMINAL_MATURE_DN, main="LPvsML")
+```{r barcodeplot, fig.height=6, fig.width=6)
 ```
 
 # Software and code used
