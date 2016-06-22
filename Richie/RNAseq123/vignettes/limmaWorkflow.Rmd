@@ -419,7 +419,7 @@ Plots shown previously include either all of the genes that are expressed in any
 
 A heatmap is created for the top 100 DE genes (as ranked by adjusted p-value) from the basal versus LP contrast using the `heatmap.2` function from the **gplots** package. The heatmap correctly clusters samples into cell type and rearranges the order of genes to form blocks of similar expression. From the heatmap, we observe that the expression of ML and LP samples are very similar for the top 100 DE genes between basal and LP.
 
-```{r heatmap, fig.height=10, fig.width=7}
+```{r heatmap, fig.height=10, fig.width=7, message=FALSE}
 library(gplots)
 basal.vs.lp.topgenes <- basal.vs.lp$ENTREZID[1:100]
 i <- which(v$genes$ENTREZID %in% basal.vs.lp.topgenes)
@@ -435,7 +435,6 @@ heatmap.2(v$E[i,], scale="row",
 We finish off this analysis with some gene set testing by applying the *camera* method [@Wu2012] to the *c2* gene signatures from Broad Institute's MSigDB c2 collection [@Subramanianetal:PNAS:2005] that have been adapted for mouse.  This are distributed as an Rdata object with this workflow package and can be loaded using the syntax below, but are also available from [http://bioinf.wehi.edu.au/software/MSigDB/](http://bioinf.wehi.edu.au/software/MSigDB/). 
 
 ```{r camera}
-#load(url("http://bioinf.wehi.edu.au/software/MSigDB/mouse_c2_v5p1.rdata"))
 data(mouse_c2_v5p1, package = "RNAseq123")
 idx <- ids2indices(Mm.c2,id=rownames(v))
 cam.BasalvsLP <- camera(v,idx,design,contrast=contr.matrix[,1],
