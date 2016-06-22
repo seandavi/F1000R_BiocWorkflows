@@ -432,7 +432,7 @@ heatmap.2(v$E[i,], scale="row",
 
 # Gene set testing with camera
 
-We finish off this analysis with some gene set testing by applying the *camera* method [@Wu2012] to the *c2* gene signatures from Broad Institute's MSigDB c2 collection [@Subramanianetal:PNAS:2005] that have been adapted for mouse and are available as Rdata objects from [http://bioinf.wehi.edu.au/software/MSigDB/](http://bioinf.wehi.edu.au/software/MSigDB/). 
+We finish off this analysis with some gene set testing by applying the *camera* method [@Wu2012] to the *c2* gene signatures from Broad Institute's MSigDB c2 collection [@Subramanianetal:PNAS:2005] that have been adapted for mouse.  This are distributed as an Rdata object with this workflow package and can be loaded using the syntax below, but are also available from [http://bioinf.wehi.edu.au/software/MSigDB/](http://bioinf.wehi.edu.au/software/MSigDB/). 
 
 ```{r camera}
 #load(url("http://bioinf.wehi.edu.au/software/MSigDB/mouse_c2_v5p1.rdata"))
@@ -455,7 +455,9 @@ After adjusting the variance of the resulting gene set test statistic by a varia
 
 This experiment is the RNA-seq equivalent of Lim *et al.* (2010) [@Lim:BreastCancerRes:2010], who used Illumina microarrays to profile the same sorted cell populations, so it is reassuring to see the gene signatures from this earlier publication coming up at the top of the list for each contrast. We make a barcodeplot of the Lim *et al.* (2010) Mature Luminal gene sets (Up and Down) in the LP versus ML contrast. Note that these sets go in the opposite direction in our dataset due to our parameterization which compares LP against ML rather than the other way around (if the contrast were reversed, the directions would be consistent).
 
-```{r barcodeplot, fig.height=6, fig.width=6)
+```{r barcodeplot, fig.height=6, fig.width=6, fig.cap="Barcode plot of `LIM_MAMMARY_LUMINAL_MATURE_UP` (red bars, top of plot) and `LIM_MAMMARY_LUMINAL_MATURE_DN` (blue bars, bottom of plot) gene sets in the LP versus ML contrast with an enrichment line for each set that shows the relative enrichment of the vertical bars in each part of the plot. The experiment of Lim *et al* [-@Lim:BreastCancerRes:2010] is very similar to the current one, with the same sorting strategy used to obtain the different cell populations, except that microarrays were used instead of RNA-seq to profile gene expression. Note that the inverse correlation (the up gene set is down and the down gene set is up) is a result of the way the contrast has been set up (LP versus ML) -- if reversed, the directionality would agree."}
+barcodeplot(efit$t[,3], index=idx$LIM_MAMMARY_LUMINAL_MATURE_UP, 
+            index2=idx$LIM_MAMMARY_LUMINAL_MATURE_DN, main="LPvsML")
 ```
 
 # Software and code used
