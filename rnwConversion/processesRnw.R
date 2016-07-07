@@ -33,7 +33,7 @@ rnwToRmd <- function(rnw) {
     tmp_file2 <- tempfile()
     rmarkdown::pandoc_convert(input = tmp_file1, output = tmp_file2,
                               to = "markdown", from = "latex",
-                              options = c("-s"))
+                              options = c("-s", "--atx-headers"))
     
     ## read the new markdown file
     ## code chunks now have 4 spaces in front of them, as they were in verbatim tags before conversion.
