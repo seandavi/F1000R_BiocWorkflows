@@ -1,0 +1,16 @@
+Package: BiocWorkflowTools
+Title: 
+Version: 0.0.1
+Authors@R: person("Mike", "Smith", email = "grimbough@gmail.com", role
+        = c("aut", "cre"))
+Description: 
+License: MIT + file LICENSE
+Depends:
+    R (>= 3.2)
+Imports:
+    rmarkdown,
+    tools
+NeedsCompilation: no
+Author: Mike Smith [aut, cre]
+Maintainer: Mike Smith <grimbough@gmail.com>
+RoxygenNote: 5.0.1
