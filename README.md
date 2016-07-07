@@ -1,7 +1,10 @@
 # F1000R_BiocWorkflows
 Project for publishing from Bioconductor to F1000R and back
 
-Currently this is intended to be a place to provide support for transitioning workflow manuscripts submitted to the [F1000Research Bioconductor channel](http://f1000research.com/channels/bioconductor) into executable packages hosted on Bioconductor.
+The goals of the project are to:
+
+1. Provide support for transitioning workflow manuscripts submitted to the [F1000Research Bioconductor channel](http://f1000research.com/channels/bioconductor) into executable packages hosted on Bioconductor.  
+2. Facilitate publication of executable workflows to both F1000R and Bioconductor.
 
 ## Structure
 
