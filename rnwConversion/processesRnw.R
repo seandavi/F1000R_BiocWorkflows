@@ -7,8 +7,9 @@ rnwToRmd <- function(rnw) {
     lines <- readLines(rnw)
     
     ## replace knitr code chunks with Rmarkdown, keeping the arguments
-    lines <- gsub(pattern = "^<<([[:print:]]+)>>=", replacement = "```{r \\1}", x = lines)
-    lines <- gsub(pattern = "^@$", replacement = "```", x = lines)
+    lines <- gsub(pattern = "^<<([[:print:]]*)>>=", replacement = "```{r \\1}", x = lines)
+    lines <- gsub("\\{r +\\}", "{r}", lines)
+    lines <- gsub(pattern = "^@ *$", replacement = "```", x = lines)
     
     ## our new code blocks will get mangled by pandoc, so we put 'verbatim' around them to keep the formatting
     ## in the intermediatory steps
