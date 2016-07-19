@@ -12,6 +12,7 @@ VignetteBuilder: knitr
 biocViews: Workflows
 Suggests: knitr, 
     rmarkdown,
+    BiocStyle,
     limma,
     minfi,
     IlluminaHumanMethylation450kanno.ilmn12.hg19,
@@ -22,7 +23,8 @@ Suggests: knitr,
     minfiData,
     Gviz,
     DMRcate,
-    stringr
+    stringr,
+    FlowSorted.Blood.450k
 NeedsCompilation: no
 Author: Bioconductor Package Maintainer [aut, cre]
 Maintainer: Bioconductor Package Maintainer <maintainer@bioconductor.org>

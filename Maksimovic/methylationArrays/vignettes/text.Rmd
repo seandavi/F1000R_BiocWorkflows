@@ -3,13 +3,16 @@ title: "A cross-package Bioconductor workflow for analysing methylation array da
 author: "Jovana Maksimovic, Belinda Phipson and Alicia Oshlack"
 date: "05/24/2016"
 output:
+  BiocStyle::html_document
   pdf_document:
     fig_caption: yes
     keep_tex: yes
-  html_document: default
   word_document:
     keep_md: yes
-bibliography: bibliography.bib
+vignette: >
+  %\VignetteIndexEntry{A cross-package Bioconductor workflow for analysing methylation array data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8} 
 ---
 
 ```{r setup, include=FALSE}
@@ -38,14 +41,12 @@ Methylation in the human genome is known to be associated with development and d
 
 DNA methylation, the addition of a methyl group to a CG dinucleotide of the DNA, is the most extensively studied epigenetic mark due to its role in both development and disease [@Bird2002; @Laird2003]. Although DNA methylation can be measured in several ways, the epigenetics community has enthusiastically embraced the Illumina HumanMethylation450 (450k) array [@Bibikova2011] as a cost-effective way to assay methylation across the human genome. More recently, Illumina has increased the genomic coverage of the platform to >850,000 sites with the release of their MethylationEPIC (850k) array. As methylation arrays are likely to remain popular for measuring methylation for the foreseeable future, it is necessary to provide robust workflows for methylation array analysis.  
 
-Measurement of DNA methylation by Infinium technology (Infinium I) was first employed by Illumina on the HumanMethylation27 (27k) array [@Bibikova2009], which measured methylation at approximately 27,000 CpGs, primarily in gene promoters. Like bisulfite sequencing, the Infinium assay detects methylation status at single base resolution. However, due to its relatively limited coverage the array platform was not truly considered "genome-wide" until the arrival of the 450k array. The 450k array increased the genomic coverage of the platform to over 450,000 gene-centric sites by combining the original Infinium I assay with the novel Infinium II probes. Both assay types employ 50bp probes that query a [C/T] polymorphism created by bisulfite conversion of unmethylated cytosines in the genome, however, the Infinium I and II assays differ in the number of beads required to detect methylation at a single locus. Infinium I uses two bead types per CpG, one for each of the methylated and unmethylated states (Figure \ref{fig:figure1}a). In contrast, the Infinium II design uses one bead type and the methylated state is determined at the single base extension step after hybridization (Figure \ref{fig:figure1}b). The 850k array also uses a combination of the Infinium I and II assays but achieves additional coverage by increasing the size of each array; a 450k slide contains 12 arrays whilst the 850k has only 8. 
+Measurement of DNA methylation by Infinium technology (Infinium I) was first employed by Illumina on the HumanMethylation27 (27k) array [@Bibikova2009], which measured methylation at approximately 27,000 CpGs, primarily in gene promoters. Like bisulfite sequencing, the Infinium assay detects methylation status at single base resolution. However, due to its relatively limited coverage the array platform was not truly considered "genome-wide" until the arrival of the 450k array. The 450k array increased the genomic coverage of the platform to over 450,000 gene-centric sites by combining the original Infinium I assay with the novel Infinium II probes. Both assay types employ 50bp probes that query a [C/T] polymorphism created by bisulfite conversion of unmethylated cytosines in the genome, however, the Infinium I and II assays differ in the number of beads required to detect methylation at a single locus. Infinium I uses two bead types per CpG, one for each of the methylated and unmethylated states (Figure 1a). In contrast, the Infinium II design uses one bead type and the methylated state is determined at the single base extension step after hybridization (Figure 1b). The 850k array also uses a combination of the Infinium I and II assays but achieves additional coverage by increasing the size of each array; a 450k slide contains 12 arrays whilst the 850k has only 8. 
 
-\begin{figure}[htbp]
-\centering
-\includegraphics{text_files/figure-latex/figure1.pdf}
-\caption{\label{fig:figure1}Illumina Infinium HumanMethylation450 assay, reproduced from Maksimovic, Gordon and Oshlack 2012. (a) Infinium I assay. Each individual CpG is interrogated using two bead types: methylated (M) and unmethylated (U). Both bead types will incorporate the same labeled nucleotide for the same target CpG, thereby producing the same color fluorescence. The nucleotide that is added is determined by the base downstream of the 'C' of the target CpG. The proportion of methylation can be calculated by comparing the intensities from the two different probes in the same color. (b) Infinium II assay. Each target CpG is interrogated using a single bead type. Methylation state is detected by single base extension at the position of the 'C' of the target CpG, which always results in the addition of a labeled 'G' or 'A' nucleotide, complementary to either the 'methylated' C or 'unmethylated' T, respectively. Each locus is detected in two colors, and methylation status is determined by comparing the two colors from the one position.}
- \end{figure}
- 
+<!--
+![Figure1: Illumina Infinium HumanMethylation450 assay, reproduced from Maksimovic, Gordon and Oshlack 2012. (a) Infinium I assay. Each individual CpG is interrogated using two bead types: methylated (M) and unmethylated (U). Both bead types will incorporate the same labeled nucleotide for the same target CpG, thereby producing the same color fluorescence. The nucleotide that is added is determined by the base downstream of the 'C' of the target CpG. The proportion of methylation can be calculated by comparing the intensities from the two different probes in the same color. (b) Infinium II assay. Each target CpG is interrogated using a single bead type. Methylation state is detected by single base extension at the position of the 'C' of the target CpG, which always results in the addition of a labeled 'G' or 'A' nucleotide, complementary to either the 'methylated' C or 'unmethylated' T, respectively. Each locus is detected in two colors, and methylation status is determined by comparing the two colors from the one position.](text_files/figure-latex/figure1.pdf)
+-->
+
 Regardless of the Illumina array version, for each CpG, there are two measurements: a methylated intensity (denoted by $M$) and an unmethylated intensity (denoted by $U$). These intensity values can be used to determine the proportion of methylation at each CpG locus. Methylation levels are commonly reported as either beta values ($\beta = M/(M + U + \alpha)$) or M-values ($Mvalue = log2((M + /alpha)/(U + /alpha))$). Beta values and M-values are related through a logit transformation. Beta values are generally preferable for describing the level of methylation at a locus or for graphical presentation because percentage methylation is easily interpretable. However, due to their distributional properties, M-values are more appropriate for statistical testing [@Du2010]. 
 
 In this workflow, we will provide examples of the steps involved in analysing methylation array data using R [@RCoreTeam2014] and Bioconductor [@Huber2015], including: quality control, filtering, normalization, data exploration and probe-wise differential methylation analysis. We will also cover other approaches such as differential methylation analysis of regions, differential variability analysis, gene ontology analysis and estimating cell type composition. Finally, we will provide some examples of useful ways to visualise methylation array data.
@@ -428,7 +429,7 @@ cols <- groups[as.character(factor(targets$Sample_Group))]
 samps <- 1:nrow(targets)
 ```
 
-```{r figure10, fig.width=10, fig.height=10, fig.cap="DMRcate provides a function for plotting differentially methylated regions in their genomic context."}
+```{r figure10, fig.width=10, fig.height=10, fig.cap="DMRcate provides a function for plotting differentially methylated regions in their genomic context.", eval=FALSE}
 # draw the plot for the second DMR
 par(mfrow=c(1,1))
 DMR.plot(ranges=results.ranges, dmr=2, CpGs=bVals, phen.col=cols,
@@ -596,7 +597,7 @@ topGSA(gsa, number=10)
 
 Rather than testing for differences in mean methylation, we may be interested in testing for differences between group variances. For example, it has been hypothesised that highly variable CpGs in cancer are important for tumour progression. Hence we may be interested in CpG sites that are consistently methylated in one group, but variably methylated in another group. 
 
-Sample size is an important consideration when testing for differentially variable CpG sites. In order to get an accurate estimate of the group variances, larger sample sizes are required than for estimating group means. A good rule of thumb is to have at least ten samples in each group [@Phipson2014]. To demonstrate testing for differentially variable CpG sites, we will use a publicly available dataset on ageing [GSE30870](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE30870), where whole blood samples were collected from 18 centenarians and 18 newborns and profiled for methylation on the 450k array [@Heyn2012]. The data (`age.rgSet`) and sample information (`age.targets`) have been included as an R data object in the data archive you previously downloaded from [figshare](`r cat(url)`). We can load the data using the `load` command, after which it needs to be normalised and filtered as previously described. 
+Sample size is an important consideration when testing for differentially variable CpG sites. In order to get an accurate estimate of the group variances, larger sample sizes are required than for estimating group means. A good rule of thumb is to have at least ten samples in each group [@Phipson2014]. To demonstrate testing for differentially variable CpG sites, we will use a publicly available dataset on ageing [GSE30870](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE30870), where whole blood samples were collected from 18 centenarians and 18 newborns and profiled for methylation on the 450k array [@Heyn2012]. The data (`age.rgSet`) and sample information (`age.targets`) have been included as an R data object in both the workflow package, or the data archive you downloaded from [figshare](https://figshare.com/s/7a37f43c0ca2fec4669e). We can load the data using the `load` command, after which it needs to be normalised and filtered as previously described. 
 
 ```{r agedata, cache=TRUE}
 # load data
