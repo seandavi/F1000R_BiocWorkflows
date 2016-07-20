@@ -1,5 +1,5 @@
 Package: BiocWorkflowTools
-Title: 
+Title: Tools to aid the development of Bioconductor Workflow packages
 Version: 0.0.1
 Authors@R: person("Mike", "Smith", email = "grimbough@gmail.com", role
         = c("aut", "cre"))
@@ -9,7 +9,8 @@ Depends:
     R (>= 3.2)
 Imports:
     rmarkdown,
-    tools
+    tools,
+    stringr
 NeedsCompilation: no
 Author: Mike Smith [aut, cre]
 Maintainer: Mike Smith <grimbough@gmail.com>
