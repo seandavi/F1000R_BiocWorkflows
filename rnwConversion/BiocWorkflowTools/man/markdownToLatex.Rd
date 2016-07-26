@@ -4,10 +4,15 @@
 \alias{markdownToLatex}
 \title{Convert R markdown to F1000 latex}
 \usage{
-markdownToLatex(input)
+markdownToLatex(input, output = NULL, compress = TRUE)
 }
 \arguments{
 \item{input}{path to Rmd file to be converted}
+
+\item{output}{Specifies the folder where the output should be written.  If left NULL this defaults to the 
+same folder as the input file.}
+
+\item{compress}{If TRUE a zip file of the output directory is created, which can be uploaded to Overleaf}
 }
 \value{
 No value is returned, but a tex file is written to disk.  Currently this is 
@@ -16,5 +21,12 @@ for the file extension.
 }
 \description{
 Turn Rmarkdown version of workflow document into latex file that can be uploaded to F1000 Overleaf
+}
+\examples{
+\dontrun{
+example_Rmd <- system.file('examples/f1000_software_example.Rmd', package = "BiocWorkflowTools")
+markdownToLatex(input = example_Rmd)
+}
+
 }
 
