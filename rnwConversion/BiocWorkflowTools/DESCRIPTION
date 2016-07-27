@@ -14,4 +14,6 @@ Imports:
 NeedsCompilation: no
 Author: Mike Smith [aut, cre]
 Maintainer: Mike Smith <grimbough@gmail.com>
+VignetteBuilder: knitr
+Suggests: BiocStyle, knitr, rmarkdown
 RoxygenNote: 5.0.1

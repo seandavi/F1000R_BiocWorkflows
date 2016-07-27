@@ -15,9 +15,12 @@ same folder as the input file.}
 \item{compress}{If TRUE a zip file of the output directory is created, which can be uploaded to Overleaf}
 }
 \value{
-No value is returned, but a tex file is written to disk.  Currently this is 
-output to the same location as the input file, and is given an identical name except 
-for the file extension.
+No value is returned, but a tex file is written to disk, and is given an identical name to the 
+input Rmd except for the file extension.  Accompanying figures are copied to the output directory
+along with style files and figures required to match the F1000 Research format.
+
+Optionally the output directory can be compressed into a zip archive, which can then be uploaded to
+Overleaf either manually, or by passing it to the function  \code{\link{uploadToOverleaf}}.
 }
 \description{
 Turn Rmarkdown version of workflow document into latex file that can be uploaded to F1000 Overleaf

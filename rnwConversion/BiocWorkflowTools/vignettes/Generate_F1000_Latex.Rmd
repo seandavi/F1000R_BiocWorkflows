@@ -1,0 +1,59 @@
+---
+title: "Converting Rmarkdown to F1000Research LaTeX Format"
+author: 
+  - name: Mike L. Smith
+date: "`r doc_date()`"
+output: 
+  BiocStyle::html_document
+vignette: >
+  %\VignetteIndexEntry{Converting Rmarkdown to F1000Research LaTeX Format}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}  
+---
+
+# Introduction
+
+The intention of this package is to provide tools to assist in converting between Rmarkdown and LaTeX documents, specifically in the case where one is writing a workflow to be submitted to F1000Research, while hopefully also hosting a runable example on Bioconductor.  Reaching these two endpoints while maintaining a single working document can be challenging.  Submission to the journal requires a LaTeX file, which is best achieved by writing an Rnw workflow based on **Sweave** or **knitr**, while producing the html based versions hosted by Bioconductor is most easily achieved from an **Rmarkdown** document.  Tools such as **pandoc** will allow conversion between many formats, but there is still a high degree of manual intervention required when aiming to meet the specific formatting requirements of a journal publication.  
+
+The current functionality assumes you have developed a workflow in Rmarkdown, and aims to make the creation of a LaTeX document suitable for submission to F1000Research, as straightforward as possible.
+
+Before we can begin, you need to load the library.
+
+```{r loadLibs}
+library(BiocWorkflowTools)
+```
+
+# Rmarkdown example
+
+This package comes with a template Rmd file based upon the LaTeX article template supplied by F1000Research.  This defines the document structure for an F1000Research software article, and gives examples of how you can incorporate tables, figures and evaluated code in your Rmarkdown document, in ways that can be converted to LaTeX.
+
+The code below finds where the template has been installed on your system, and prints its location, so you can look at it and make a copy to begin creating your own workflow.
+
+```{r exampleFile}
+example_Rmd <- system.file('examples/f1000_software_example.Rmd', package = "BiocWorkflowTools")
+example_Rmd
+```
+
+# Converting to LaTeX
+
+Once you have written your Rmarkdown document, you want to convert it to LaTeX for submission to the journal.  The function `markdownToLatex()` takes an Rmd file as input, and will produce a LaTeX file with the appropriate formatting options defined to generate a document that meets the requirements of an F1000Research article.
+
+The `output` argument to `markdownToLatex()` specifies the directory you would like the output written to.  In the code below the first two lines generate a temporary location we will use in this example.  For your own workflow you will likely want to specify a location directly.
+
+You can optionally choose to create a *zip* file archive of the output folder using the argument `compress`.  Doing so can make uploading the project for journal submission easier as you only have to select a single file.
+
+<!--- setting this to eval=TRUE goes badly.  I think this is because markdownToLatex() explicitly sets knitr to render latex code chunks and everything gets very confused as a result -->
+```{r convertToLatex, message=FALSE, eval=FALSE}
+tmp_dir <- file.path(tempdir(), 'F1000_example')
+dir.create(tmp_dir)
+markdownToLatex(input = example_Rmd, output = tmp_dir, compress = TRUE)
+```
+
+# Article upload
+
+Finally, we provide the function `uploadToOverleaf()` to upload the project directly to Overleaf, the LaTeX authoring system F1000Research use for their submission process.  This step is entirely optional, and the output create by the previous steps can be uploaded manually.  
+
+```{r upload, eval=FALSE}
+zip_file <- paste0(tmp_dir, '.zip')
+uploadToOverleaf(files = zip_file, openInBrowser = TRUE)
+```
